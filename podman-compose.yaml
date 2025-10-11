@@ -1,14 +1,47 @@
 version: "3.9"
 
+networks:
+  internal-net:
+    driver: bridge
+
+x-environment: &common-env
+  SPRING_CLOUD_CONSUL_HOST: consul
+  SPRING_CLOUD_CONSUL_PORT: 8500
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+  SERVER_PORT: 8080
+
 services:
+  consul: #DNS
+      image: hashicorp/consul:latest
+      container_name: consul
+      ports:
+        - "8500:8500"   # Web UI and API
+      networks:
+        - internal-net
+      command: "agent -server -bootstrap -ui -client=0.0.0.0"
+
   user_management_service:
-    image: user_management
+    build: microservices/userManagement
     container_name: user_management
-    ports:
-      - "8081:8080"
+    depends_on:
+      - consul
+    environment:
+      <<: *common-env
+      SPRING_APPLICATION_NAME: user-management
+    expose:
+      - "8080"
+    networks:
+      - internal-net
 
   document_management_service:
-    image: document_management
+    build: microservices/documentManagement
     container_name: document_management
-    ports:
-      - "8082:8080"
+    depends_on:
+      - consul
+    environment:
+      <<: *common-env
+      SPRING_APPLICATION_NAME: document-management
+    expose:
+      - "8080"
+    networks:
+      - internal-net
