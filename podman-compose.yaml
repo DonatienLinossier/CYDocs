@@ -9,6 +9,16 @@ x-environment: &common-env
   SPRING_CLOUD_CONSUL_PORT: 8500
   MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
   SERVER_PORT: 8080
+  SPRING_CLOUD_CONSUL_DISCOVERY_HEALTH_CHECK_PATH: /actuator/health
+  SPRING_CLOUD_CONSUL_DISCOVERY_HEALTH_CHECK_INTERVAL: 10s
+  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: ${HOSTNAME:-instance}-${SERVER_PORT}-${random.value} #Hostname dosent resolve
+  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: ${HOSTNAME//_/-}
+  LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: DEBUG #debug
+
+  
+
+
 
 services:
   consul: #DNS
@@ -16,13 +26,18 @@ services:
       container_name: consul
       ports:
         - "8500:8500"   # Web UI and API
+        - "8600:8600"
+      expose:
+        - "8600" #DNS
+      cap_add:
+        - NET_BIND_SERVICE
       networks:
         - internal-net
-      command: "agent -server -bootstrap -ui -client=0.0.0.0"
+      command: "agent -server -bootstrap -ui -client=0.0.0.0 -dns-port=8600 -log-level=debug"
 
-  user_management_service:
+
+  user-management-service:
     build: microservices/userManagement
-    container_name: user_management
     depends_on:
       - consul
     environment:
@@ -33,9 +48,8 @@ services:
     networks:
       - internal-net
 
-  document_management_service:
+  document-management-service:
     build: microservices/documentManagement
-    container_name: document_management
     depends_on:
       - consul
     environment:
@@ -45,3 +59,20 @@ services:
       - "8080"
     networks:
       - internal-net
+
+  nginx:
+    build: nginx
+    container_name: gateway
+    depends_on:
+      - consul
+      - document-management-service
+      - user-management-service
+    networks:
+      - internal-net
+    ports:
+      - "8080:80"
+    volumes:
+      - ./error.html:/usr/share/nginx/html/error.html:ro
+    cap_add:
+      - NET_BIND_SERVICE
+
