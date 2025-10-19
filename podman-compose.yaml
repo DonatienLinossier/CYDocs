@@ -21,6 +21,13 @@ x-environment: &common-env
 
 
 services:
+  front:
+    build: frontend
+    container_name: front
+    ports:
+      - "5173:5173"
+
+
   consul: #DNS
       image: hashicorp/consul:latest
       container_name: consul

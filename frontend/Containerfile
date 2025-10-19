@@ -1,0 +1,29 @@
+# Use Node.js for both building and running
+FROM node:22
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first (for caching)
+COPY CYDocs-front/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the project
+COPY CYDocs-front/. .
+
+# Ensure local binaries are executable (fix for some Linux permissions)
+RUN chmod +x ./node_modules/.bin/vite
+
+# Build the app using the local vite binary
+RUN npm run build
+
+# Expose port
+EXPOSE 5173
+
+# Install a static server globally to serve the build
+RUN npm install -g serve
+
+# Start the server
+CMD ["serve", "-s", "dist", "-l", "5173"]
