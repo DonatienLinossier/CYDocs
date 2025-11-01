@@ -44,16 +44,23 @@ services:
 
 
   user-management-service:
-    build: microservices/userManagement
+    build:
+      context: ./microservices/UserManagement
+      containerfile: Containerfile
+    container_name: user-management-service
     depends_on:
       - consul
     environment:
       <<: *common-env
       SPRING_APPLICATION_NAME: user-management
+      SERVICE_URL_DOCUMENT: http://document-management-service:8080
     expose:
       - "8080"
+    ports:
+      - "8081:8080"
     networks:
       - internal-net
+
 
   document-management-service:
     build: microservices/documentManagement
