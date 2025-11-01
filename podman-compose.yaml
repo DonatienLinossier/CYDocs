@@ -16,9 +16,8 @@ x-environment: &common-env
   SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: ${HOSTNAME//_/-}
   LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: DEBUG #debug
 
-  
-
-
+volumes:
+  mysql-data:
 
 services:
   front:
@@ -50,14 +49,19 @@ services:
     container_name: user-management-service
     depends_on:
       - consul
+      - mysql
     environment:
       <<: *common-env
       SPRING_APPLICATION_NAME: user-management
       SERVICE_URL_DOCUMENT: http://document-management-service:8080
+      #DATABASE connection
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/root?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
     expose:
       - "8080"
     ports:
-      - "8081:8080"
+      - "8081:8080" #TODO: To delete
     networks:
       - internal-net
 
@@ -89,4 +93,17 @@ services:
       - ./error.html:/usr/share/nginx/html/error.html:ro
     cap_add:
       - NET_BIND_SERVICE
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306" #TODO: To delete
+    networks:
+      - internal-net  
 
