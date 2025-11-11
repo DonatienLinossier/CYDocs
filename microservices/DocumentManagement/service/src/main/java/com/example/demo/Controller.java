@@ -3,15 +3,29 @@ package com.example.demo;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 public class Controller implements ErrorController {
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @GetMapping("/websock")
+    public Map<String, Object> websock() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Document created!");
+        response.put("status", 200);
+
+        messagingTemplate.convertAndSend("/topic/updates", response);
+
+        return response;
+    }
 
     @GetMapping("/createDoc")
     public Map<String, Object> createDoc() {
