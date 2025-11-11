@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Espace utilisateur</title>
+</head>
+<body>
+<h1>Mes Documents</h1>
+
+<table border="1">
+    <tr>
+        <th>Titre</th>
+        <th>Dernière modification</th>
+        <th>Actions</th>
+    </tr>
+
+    <tr th:each="doc : ${documents}">
+        <td th:text="${doc.title}"></td>
+        <td th:text="${doc.lastModified}"></td>
+        <td>
+            <a th:href="@{'/documents/' + ${doc.id}}">Ouvrir</a>
+            <a th:href="@{'/documents/delete/' + ${doc.id}}">Supprimer</a>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
