@@ -5,6 +5,7 @@ import java.time.Instant;
 
 @Entity
 public class Token {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,5 +34,8 @@ public class Token {
     public String getType() { return type; }
     public Instant getExpiresAt() { return expiresAt; }
 
+    public void setUserId(Long userId) { this.userId = userId; }
+    public void setToken(String token) { this.token = token; }
     public void setType(String type) { this.type = type; }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
 }

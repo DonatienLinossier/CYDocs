@@ -39,6 +39,11 @@ public class UserService {
 
 
     public void logout(String token) {
+        Long userId = tokenService.validate(token, "LOGIN");
+        if (userId == null) {
+            throw new RuntimeException("Token invalide ou expiré — impossible de se déconnecter.");
+        }
+
         tokenService.invalidate(token);
         System.out.println("[UserService] Déconnexion : token supprimé " + token);
     }

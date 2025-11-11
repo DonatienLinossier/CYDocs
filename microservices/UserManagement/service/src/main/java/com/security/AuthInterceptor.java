@@ -35,7 +35,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         if (token == null || tokenService.validate(token, "LOGIN") == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("❌ Token invalide ou expiré");
+            response.getWriter().write("Token invalide ou expiré");
             return false;
         }
 

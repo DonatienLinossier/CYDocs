@@ -94,7 +94,7 @@ public class UserController {
         return ResponseEntity.ok("Déconnexion réussie !");
     }
 
-    @LoginRequired
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         boolean deleted = userService.deleteUser(id);

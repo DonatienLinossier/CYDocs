@@ -1,13 +1,19 @@
 package com.example.demo.service;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import com.example.demo.model.Token;
 import com.example.demo.repository.TokenRepository;
 
+
 @Service
+@Transactional
 public class TokenService {
 
     @Autowired
