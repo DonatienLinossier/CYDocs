@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Document WebSocket Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+</head>
+<body>
+  <h2>Spring Boot WebSocket Doc Test</h2>
+  
+  <input id="sender" placeholder="Sender" />
+  <input id="content" placeholder="Message" />
+  <button id="sendBtn">Send</button>
+  
+  <ul id="messages"></ul>
+
+  <script>
+    // Get docId from URL query
+    const urlParams = new URLSearchParams(window.location.search);
+    const docId = urlParams.get('docId');
+    if (!docId) {
+      alert("No document ID in URL");
+      throw new Error("Missing docId");
+    }
+    console.log("Connecting to doc:", docId);
+
+    let stompClient;
+    let connected = false;
+
+    function connect() {
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
+
+      stompClient.connect({}, () => {
+        console.log("Connected to WebSocket for doc:", docId);
+        connected = true;
+
+        // Subscribe to doc-specific topic
+        stompClient.subscribe(`/topic/doc/${docId}`, msg => {
+          const data = JSON.parse(msg.body);
+          const li = document.createElement("li");
+          li.textContent = data.sender ? `${data.sender}: ${data.content}` : JSON.stringify(data);
+          document.getElementById("messages").appendChild(li);
+        });
+      }, err => {
+        console.error("WebSocket connection error:", err);
+      });
+    }
+
+    connect();
+
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      if (!connected) return alert("Not connected yet!");
+      const sender = document.getElementById("sender").value;
+      const content = document.getElementById("content").value;
+      if (!content) return;
+
+      stompClient.send(`/app/doc/${docId}`, {}, JSON.stringify({ sender, content }));
+    });
+  </script>
+</body>
+</html>
