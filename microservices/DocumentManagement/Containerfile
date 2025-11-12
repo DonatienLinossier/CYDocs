@@ -1,32 +1,32 @@
 # -------- Stage 1: Build --------
-FROM eclipse-temurin:25-jdk-alpine AS build
-WORKDIR /app
-
-# Copy Maven wrapper and pom.xml first to leverage caching
-COPY service/mvnw .
-COPY service/.mvn .mvn
-COPY service/pom.xml .
-
-# Download dependencies only (cached if pom.xml doesn't change)
-RUN chmod +x ./mvnw
-#Allow execution
-RUN ./mvnw dependency:go-offline
-
-# Copy source code
-COPY service/src ./src
-
-# Build the Spring Boot JAR
-RUN ./mvnw package -DskipTests
-
-# -------- Stage 2: Runtime --------
-FROM eclipse-temurin:25-jdk-alpine
-WORKDIR /app
-
-# Copy the built JAR from the build stage
-COPY --from=build /app/target/demo-0.0.1-SNAPSHOT.jar ./demo.jar
-
-# Expose the port your Eureka server runs on
-EXPOSE 8080
-
-# Run the application
-ENTRYPOINT ["java", "-jar", "demo.jar"]
+    FROM eclipse-temurin:25-jdk-alpine AS build
+    WORKDIR /app
+    
+    # Copy Maven wrapper and pom.xml first to leverage caching
+    COPY service/mvnw .
+    COPY service/.mvn .mvn
+    COPY service/pom.xml .
+    
+    # Download dependencies only (cached if pom.xml doesn't change)
+    RUN chmod +x ./mvnw
+    #Allow execution
+    RUN ./mvnw dependency:go-offline
+    
+    # Copy source code
+    COPY service/src ./src
+    
+    # Build the Spring Boot JAR
+    RUN ./mvnw package -DskipTests
+    
+    # -------- Stage 2: Runtime --------
+    FROM eclipse-temurin:25-jdk-alpine
+    WORKDIR /app
+    
+    # Copy the built JAR from the build stage
+    COPY --from=build /app/target/demo-0.0.1-SNAPSHOT.jar ./demo.jar
+    
+    # Expose the port your Eureka server runs on
+    EXPOSE 8080
+    
+    # Run the application
+    ENTRYPOINT ["java", "-jar", "demo.jar"]
