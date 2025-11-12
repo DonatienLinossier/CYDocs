@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.demo.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.error.ErrorController;
@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-public class Controller implements ErrorController {
+public class ControllerError implements ErrorController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
