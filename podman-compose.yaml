@@ -74,6 +74,9 @@ services:
     environment:
       <<: *common-env
       SPRING_APPLICATION_NAME: document-management
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/root?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
     expose:
       - "8080"
     ports:
