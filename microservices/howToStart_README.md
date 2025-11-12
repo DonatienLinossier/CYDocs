@@ -99,3 +99,19 @@ Run podman-compose down.
 
 Once the app is launch, you can check the health of the microservice on `http://localhost:8500/ui/dc1/services`.
 
+
+## Extract the db from podman
+
+First connect to the container, then from the terminal of the container(via podman desktop) enter "mysqldump -u -p --all-databases > /dump.sql".
+You will have to enter the db password. 
+After that, you will have a dump.sql file created at the root. 
+
+To extract it of the container, do "podman cp mysql:/dump.sql ./data/dump.sql" on the host. This will copy the dump file from the container to the host at ./data/dump.sql.
+
+## Insert the db to podman
+
+Same as before, first you need to copy your file to podman. Do "podman cp ./data/dump.sql mysql:/dump.sql" on the host. This supposes that your file is located in /data and that is name is dump.sql. 
+
+Now to create the db from the dump, enter the container terminal (via podman desktop), and enter "mysql -uroot -p database" < ./dump.sql"; This will create a database named database from the dump file. 
+
+/!\ Please use the "cydocs_database" database /!\
