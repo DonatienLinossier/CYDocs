@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import java.util.Optional;
+
 
 @Service
 public class DocumentService {
@@ -17,9 +17,8 @@ public class DocumentService {
     private final DocumentRepository repo;
     private final DocumentAccesRepository accesRepository;
 
-    public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository) {
+    public DocumentService(DocumentRepository repo) {
         this.repo = repo;
-        this.accesRepository = accesRepository;
     }
 
     public Document save(Document doc) {
@@ -35,6 +34,10 @@ public class DocumentService {
     }
     
 
+    public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository) {
+        this.repo = repo;
+        this.accesRepository = accesRepository;
+    }
 
     public List<Document> getUserDocuments(Long userId) {
         // Récupère tous les documents auxquels l'utilisateur a accès
