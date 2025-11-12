@@ -87,6 +87,7 @@ From the root of the project, run podman-compose up. You can add the following o
   '-d' option to run the app detached (Advised)
   '--build' option rebuild microservice with changes (Advised)
 
+podman-compose up -d (NomMicroService) --build
 ---
 
 ## 7️⃣ Stop the app

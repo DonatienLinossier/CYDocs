@@ -18,6 +18,6 @@ public class UserSpaceController {
     public String userSpace(Model model) {
         Long currentUserId = 1L; // TODO: récupérer l’ID depuis la session/login
         model.addAttribute("documents", documentService.getUserDocuments(currentUserId));
-        return "userspace"; // templates/userspace.html
+        return "redirect:/userspace.html"; // static/userspace.html
     }
 }
