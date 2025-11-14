@@ -84,6 +84,29 @@
     transform: translateY(0);
 }
 
+.signin-forgot {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--accent-1, #3b82f6);
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: underline;
+  line-height: 1;
+}
+
+.btn-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--accent-1, #3b82f6);
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
 /* Responsive tweaks */
 @media (max-width: 420px) {
     .signin-card { padding: 20px; max-width: 92%; }
