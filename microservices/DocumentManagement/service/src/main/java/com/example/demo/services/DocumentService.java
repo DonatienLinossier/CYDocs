@@ -22,16 +22,23 @@ public class DocumentService {
         this.accesRepository = accesRepository;
     }
 
-    public Document save(Document doc) {
-        return repo.save(doc);
-    }
-
     public Optional<Document> getById(Long id) {
         return repo.findById(id);
     }
 
     public void delete(Long id) {
         repo.deleteById(id);
+    }
+    public Document create(Document document) {
+        return repo.save(document);
+    }
+    public Document update(Long id, Document document) {
+        return repo.findById(id).map(existingDocument -> {
+            existingDocument.setTitle(document.getTitle());
+            existingDocument.setContent(document.getContent());
+            existingDocument.setLastModifiedBy(document.getLastModifiedBy());
+            return repo.save(existingDocument);
+        }).orElse(null);
     }
     
 

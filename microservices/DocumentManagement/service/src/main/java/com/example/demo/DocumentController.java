@@ -17,9 +17,15 @@ public class DocumentController {
     }
 
     // Méthode SAVE
-    @PostMapping("/save")
-    public Document save(@RequestBody Document document) {
-        return service.save(document);
+    @PostMapping("/create")
+    public Document create(@RequestBody Document document) {
+        return service.create(document);
+    }
+
+    // Méthode UPDATE
+    @PutMapping("/update/{id}")
+    public Document update(@PathVariable Long id, @RequestBody Document document) {
+        return service.update(id, document);
     }
 
     // Liste des documents de l’utilisateur (UserSpace)
@@ -29,13 +35,13 @@ public class DocumentController {
     }
 
     // Récupérer un document
-    @GetMapping("/{id}")
+    @GetMapping("get/{id}")
     public Document getById(@PathVariable Long id) {
         return service.getById(id).orElse(null);
     }
 
     // Supprimer
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }
