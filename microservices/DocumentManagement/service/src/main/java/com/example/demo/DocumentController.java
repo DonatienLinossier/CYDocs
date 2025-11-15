@@ -2,10 +2,12 @@ package com.example.demo.controllers;
 
 import com.example.demo.models.Document;
 import com.example.demo.services.DocumentService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-// Fonction pour gérer les requêtes/front controller
+
 @RestController
 @RequestMapping("/documents")
 public class DocumentController {
@@ -16,33 +18,53 @@ public class DocumentController {
         this.service = service;
     }
 
-    // Méthode SAVE
+    // CREATE
     @PostMapping("/create")
-    public Document create(@RequestBody Document document) {
-        return service.create(document);
+    public ResponseEntity<Document> create(@RequestBody Document document) {
+        if (document.getId() != null && service.getById(document.getId()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409
+        }
+
+        Document created = service.create(document);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created); // 201
     }
 
-    // Méthode UPDATE
+    // UPDATE
     @PutMapping("/update/{id}")
-    public Document update(@PathVariable Long id, @RequestBody Document document) {
-        return service.update(id, document);
+    public ResponseEntity<Document> update(@PathVariable Long id, @RequestBody Document document) {
+
+        if (service.getById(id).isEmpty()) {
+            return ResponseEntity.notFound().build(); // 404
+        }
+
+        Document updated = service.update(id, document);
+        return ResponseEntity.ok(updated); // 200
     }
 
-    // Liste des documents de l’utilisateur (UserSpace)
+    // GET DOCUMENTS FOR USER
     @GetMapping("/user/{userId}")
-    public List<Document> getUserDocuments(@PathVariable Long userId) {
-        return service.getUserDocuments(userId);
+    public ResponseEntity<List<Document>> getUserDocuments(@PathVariable Long userId) {
+        List<Document> docs = service.getUserDocuments(userId);
+
+        return ResponseEntity.ok(docs); // 200
     }
 
-    // Récupérer un document
-    @GetMapping("get/{id}")
-    public Document getById(@PathVariable Long id) {
-        return service.getById(id).orElse(null);
+    // GET DOCUMENT BY ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Document> getById(@PathVariable Long id) {
+        return service.getById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Supprimer
-    @DeleteMapping("delete/{id}")
-    public void delete(@PathVariable Long id) {
+    // DELETE
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        if (service.getById(id).isEmpty()) {
+            return ResponseEntity.notFound().build(); // 404
+        }
+
         service.delete(id);
+        return ResponseEntity.noContent().build(); // 204
     }
 }
