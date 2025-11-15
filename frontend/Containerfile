@@ -15,6 +15,7 @@ COPY CYDocs-front/. .
 
 # Ensure local binaries are executable (fix for some Linux permissions)
 RUN chmod +x ./node_modules/.bin/vite
+RUN chmod +x node_modules/@esbuild/linux-x64/bin/esbuild
 
 # Build the app using the local vite binary
 RUN npm run build
