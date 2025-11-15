@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
+@Table(name = "tokens", indexes = {
+    @Index(columnList = "token", unique = true)
+})
 public class Token {
 
     @Id
@@ -12,7 +15,7 @@ public class Token {
 
     private Long userId;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 500)
     private String token;
 
     private String type;

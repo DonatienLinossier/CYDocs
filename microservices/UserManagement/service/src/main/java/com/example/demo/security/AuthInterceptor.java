@@ -22,17 +22,24 @@ public class AuthInterceptor implements HandlerInterceptor {
                              HttpServletResponse response,
                              Object handler) throws Exception {
 
+
         if (!(handler instanceof HandlerMethod)) return true;
 
         HandlerMethod method = (HandlerMethod) handler;
 
         LoginRequired annotation = method.getMethodAnnotation(LoginRequired.class);
-        if (annotation == null) return true;
-
+        if (annotation == null) return true; 
         String token = request.getHeader("Authorization");
-        if (token == null || token.isEmpty())
-            token = request.getParameter("token");
 
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        if (token == null || token.isEmpty()) {
+            token = request.getParameter("token");
+        }
+
+     
         if (token == null || tokenService.validate(token, "LOGIN") == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token invalide ou expiré");
