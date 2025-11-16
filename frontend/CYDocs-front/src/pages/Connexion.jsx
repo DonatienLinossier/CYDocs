@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import "../styles/Connexion.css";
 import PasswordResetModal from "./PasswordResetModal";
 
@@ -12,19 +13,50 @@ export default function Connexion() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showResetModal, setShowResetModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const submit = (e) => {
+  // submit handles signup or login depending on mode
+  const submit = async (e) => {
     e.preventDefault();
-    // No name field in the form — derive a display name from the email local part
+    setErrorMessage("");
+
     const derivedName = email ? email.split("@")[0] : "User";
-    const user = { name: derivedName, email };
-    localStorage.setItem("cy_user", JSON.stringify(user));
-    navigate("/", { replace: true });
-    window.location.reload();
+
+    try {
+      if (mode === "signup") {
+        // register
+        
+        const response = await axios.post("http://127.0.0.1:8081/api/users/register", {
+          
+          email,
+          password,
+        });
+        console.log("Registration response:", response.data);
+      } else {
+        // login
+        await axios.post("http://127.0.0.1:8081/api/users/login", {
+          email,
+          password,
+        });
+      }
+
+      // persist a simple session locally and redirect to home
+      const user = { name: derivedName, email };
+      localStorage.setItem("cy_user", JSON.stringify(user));
+      navigate("/", { replace: true });
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      // show a friendly message; prefer server message if available
+      const serverMsg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.response?.statusText;
+      setErrorMessage(serverMsg || "Utilisateur introuvable ou erreur réseau");
+    }
   };
 
   const forgotPassword = () => {
-    // open the password reset modal and prefill with current email (if any)
     setShowResetModal(true);
   };
 
@@ -66,6 +98,8 @@ export default function Connexion() {
               required
             />
           </div>
+
+          {errorMessage && <div className="form-error" role="alert">{errorMessage}</div>}
 
           <button className="signin-button" type="submit">
             {mode === "signup" ? "Create account" : "Log in"}
