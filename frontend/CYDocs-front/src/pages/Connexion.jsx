@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/Connexion.css";
 import PasswordResetModal from "./PasswordResetModal";
-import axios from axios;
+import axios from "axios";
 
 export default function Connexion() {
   const loc = useLocation();
