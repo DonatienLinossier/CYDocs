@@ -24,13 +24,14 @@ public class PasswordResetService {
 
 
     public boolean sendResetToken(String email) {
+
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
             System.out.println("[PasswordResetService] Utilisateur introuvable : " + email);
             return false;
         }
 
-        String token = tokenService.createToken(user.getId(), "RESET");
+        String token = tokenService.createResetToken(user);
 
         String resetLink = "https://l'adresse_du_front/reset-password?token=" + token;
 
@@ -48,6 +49,7 @@ public class PasswordResetService {
     }
 
     public boolean resetPassword(String tokenValue, String newPassword) {
+
         Long userId = tokenService.validate(tokenValue, "RESET");
         if (userId == null) {
             System.out.println("[PasswordResetService] Token invalide ou expiré : " + tokenValue);
@@ -56,13 +58,13 @@ public class PasswordResetService {
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            System.out.println("[PasswordResetService] Aucun utilisateur pour le token : " + tokenValue);
-            tokenService.invalidate(tokenValue);
+            System.out.println("[PasswordResetService] Aucun utilisateur pour ce token");
             return false;
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
         tokenService.invalidate(tokenValue);
 
         System.out.println("[PasswordResetService] Mot de passe réinitialisé pour : " + user.getEmail());

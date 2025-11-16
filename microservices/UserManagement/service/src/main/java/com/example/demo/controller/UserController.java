@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.DeleteMapping;
+
 import com.example.demo.model.User;
 import com.example.demo.security.LoginRequired;
 import com.example.demo.service.PasswordResetService;
@@ -42,14 +43,14 @@ public class UserController {
         }
     }
 
+    @LoginRequired
     @GetMapping("/{email}")
     public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
         User user = userService.getUserByEmail(email);
         if (user != null) {
             return ResponseEntity.ok(user);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Utilisateur introuvable pour : " + email);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur introuvable pour : " + email);
         }
     }
 
@@ -59,20 +60,18 @@ public class UserController {
         if (sent) {
             return ResponseEntity.ok("Email de réinitialisation envoyé à " + email);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Aucun utilisateur trouvé avec cette email.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aucun utilisateur trouvé avec cette email.");
         }
     }
 
+
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestParam String token,
-                                                @RequestParam String newPassword) {
+    public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         boolean success = passwordResetService.resetPassword(token, newPassword);
         if (success) {
             return ResponseEntity.ok("Mot de passe réinitialisé avec succès.");
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .body("Token invalide ou expiré.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token invalide ou expiré.");
         }
     }
 
@@ -97,15 +96,14 @@ public class UserController {
         return ResponseEntity.ok("Déconnexion réussie !");
     }
 
-
+    @LoginRequired
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         boolean deleted = userService.deleteUser(id);
         if (deleted) {
             return ResponseEntity.ok("Utilisateur supprimé !");
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body("Utilisateur introuvable : " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur introuvable : " + id);
         }
     }
 
