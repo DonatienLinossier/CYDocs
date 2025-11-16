@@ -47,8 +47,7 @@ public class UserController {
         if (user != null) {
             return ResponseEntity.ok(user);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Utilisateur introuvable pour : " + email);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur introuvable pour : " + email);
         }
     }
 
@@ -58,21 +57,18 @@ public class UserController {
         if (sent) {
             return ResponseEntity.ok("Email de réinitialisation envoyé à " + email);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Aucun utilisateur trouvé avec cette email.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aucun utilisateur trouvé avec cette email.");
         }
     }
 
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestParam String token,
-                                                @RequestParam String newPassword) {
+    public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         boolean success = passwordResetService.resetPassword(token, newPassword);
         if (success) {
             return ResponseEntity.ok("Mot de passe réinitialisé avec succès.");
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .body("Token invalide ou expiré.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token invalide ou expiré.");
         }
     }
 
@@ -104,8 +100,7 @@ public class UserController {
         if (deleted) {
             return ResponseEntity.ok("Utilisateur supprimé !");
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body("Utilisateur introuvable : " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur introuvable : " + id);
         }
     }
 
