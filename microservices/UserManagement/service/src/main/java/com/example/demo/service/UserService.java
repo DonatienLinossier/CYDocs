@@ -52,12 +52,17 @@ public class UserService {
     }
 
     public User registerUser(User user) {
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email déjà utilisé");
+        }
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User saved = userRepository.save(user);
 
         System.out.println("[UserService] Utilisateur enregistré : " + saved.getUsername());
         return saved;
     }
+
 
     public boolean deleteUser(Long id) {
         User existing = userRepository.findById(id).orElse(null);
