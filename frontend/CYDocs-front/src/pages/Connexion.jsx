@@ -11,7 +11,7 @@ export default function Connexion() {
   const mode = params.get("mode") === "signup" ? "signup" : "login";
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState(""); 
   const [showResetModal, setShowResetModal] = useState(false);
 
   const submit = async (e) => {
