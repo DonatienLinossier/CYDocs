@@ -19,9 +19,9 @@ import com.example.demo.security.LoginRequired;
 import com.example.demo.service.PasswordResetService;
 import com.example.demo.service.UserService;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
+//import org.springframework.web.bind.annotation.CrossOrigin;
 
-@CrossOrigin(origins = "http://localhost:5173")
+//@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/users")
 public class UserController {

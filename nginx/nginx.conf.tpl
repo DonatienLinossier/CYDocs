@@ -17,7 +17,23 @@ upstream document-management {
 server {
     listen 80;
 
+    # Set up variables for CORS policy
+    set $cors_origin "http://localhost:5173";
+
+    # Common CORS headers
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+    add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+    add_header 'Access-Control-Max-Age' 1728000 always;
+    
+    # Specific headers for credentials
+    add_header 'Access-Control-Allow-Origin' $cors_origin always;
+    add_header 'Access-Control-Allow-Credentials' 'true' always;
+
     location /user/ {
+        if ($request_method = 'OPTIONS') {
+            return 204; # No Content
+        }
+
         proxy_pass http://user-management/;
     }
 

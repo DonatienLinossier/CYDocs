@@ -23,7 +23,7 @@ export default function Connexion() {
       if (mode === "signup") {
         // register
         
-        const response = await axios.post("http://127.0.0.1:8081/api/users/register", {
+        const response = await axios.post("http://127.0.0.1:8080/user/api/users/register", {
           
           email,
           password,
@@ -31,7 +31,7 @@ export default function Connexion() {
         console.log("Registration response:", response.data);
       } 
         // login
-        await axios.post("http://127.0.0.1:8081/api/users/login", {
+        await axios.post("http://127.0.0.1:8080/user/api/users/login", {
           email,
           password,
         });
