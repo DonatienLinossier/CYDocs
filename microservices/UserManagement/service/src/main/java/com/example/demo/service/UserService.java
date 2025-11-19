@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -9,10 +10,11 @@ import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import org.springframework.beans.factory.annotation.Autowired;
+import main.java.com.cyFramework.core.Acteur;
+import main.java.com.cyFramework.core.Message;
 
 @Service
-public class UserService {
+public class UserService extends Acteur {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -21,21 +23,33 @@ public class UserService {
     private TokenService tokenService;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        super("UserService");
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+
+        this.demarrer();
     }
+
+    @Override
+    public void recevoirMessage(Message message) {
+        getLogger().info("Message reçu : " + message.getContenu());
+    }
+
 
     @CircuitBreaker(name = "authService", fallbackMethod = "fallbackAuth")
     public String login(String email, String rawPassword) {
+
         User existing = userRepository.findByEmail(email).orElse(null);
 
         if (existing != null && passwordEncoder.matches(rawPassword, existing.getPassword())) {
 
             String token = tokenService.createLoginToken(existing);
+        
+            getLogger().info("Connexion réussie : token signé = " + token);
 
-            System.out.println("[UserService] Connexion réussie : token signé = " + token);
             return token;
         }
+
         throw new RuntimeException("Email ou mot de passe incorrect !");
     }
 
@@ -48,10 +62,12 @@ public class UserService {
 
         tokenService.invalidate(token);
 
-        System.out.println("[UserService] Déconnexion : token supprimé " + token);
+
+        getLogger().info("Déconnexion : token supprimé " + token);
     }
 
     public User registerUser(User user) {
+
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email déjà utilisé");
         }
@@ -59,33 +75,42 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User saved = userRepository.save(user);
 
-        System.out.println("[UserService] Utilisateur enregistré : " + saved.getUsername());
+        getLogger().info("Utilisateur enregistré : " + saved.getUsername());
+
+
         return saved;
     }
 
-
     public boolean deleteUser(Long id) {
+
         User existing = userRepository.findById(id).orElse(null);
+
         if (existing == null) {
-            System.out.println("[UserService] Utilisateur introuvable : " + id);
+            getLogger().warn("Suppression échouée : utilisateur introuvable -> " + id);
             return false;
         }
 
         userRepository.delete(existing);
-        System.out.println("Utilisateur supprimé : " + existing.getUsername());
+
+        getLogger().info("Utilisateur supprimé : " + existing.getUsername());
+
         return true;
     }
 
-    private String fallbackAuth(User user, Throwable t) {
+    private String fallbackAuth(String email, String rawPassword, Throwable t) {
+        getLogger().error("Échec du service login (fallback) : " + t.getMessage());
         return "Service indisponible....";
     }
 
     public void updatePassword(Long id, String newRawPassword) {
+
         User u = userRepository.findById(id).orElse(null);
         if (u == null) return;
 
         u.setPassword(passwordEncoder.encode(newRawPassword));
         userRepository.save(u);
+
+        getLogger().info("Mot de passe mis à jour pour l'utilisateur ID=" + id);
     }
 
     public List<User> getAllUsers() {
