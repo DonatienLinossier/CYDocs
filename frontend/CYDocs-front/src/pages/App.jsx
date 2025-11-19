@@ -21,12 +21,28 @@ function App() {
       d.author.toLowerCase().includes(query.toLowerCase())
   );
 
-  const signOut = () => {
-    localStorage.removeItem("cy_user");
-    setUser(null);
-    // return to home clean
-    window.location.reload();
-  };
+const signOut = async () => {
+  try {
+    const token = localStorage.getItem("cy_token");
+
+    if (token) {
+      //Version pour tester en local
+      //await axios.post(`http://127.0.0.1:8081/api/users/logout?token=${token}`);
+
+      //Version pour tester avec la gateway
+      await axios.post(`http://127.0.0.1:8080/user/api/users/logout?token=${token}`);
+    }
+  } catch (err) {
+    console.error("Erreur lors de la déconnexion :", err);
+  }
+
+  // Quoi qu'il arrive, on nettoie le front
+  localStorage.removeItem("cy_user");
+  localStorage.removeItem("cy_token");
+  setUser(null);
+  window.location.reload();
+};
+
 
   // add this helper inside the App component
   const shareDoc = (doc) => {

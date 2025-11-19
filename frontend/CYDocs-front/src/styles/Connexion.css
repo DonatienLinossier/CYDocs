@@ -112,3 +112,19 @@
     .signin-card { padding: 20px; max-width: 92%; }
     .signin-title { font-size: 22px; }
 }
+
+
+.signin-error-message {
+    color: #e74c3c; /* rouge vif */
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(231, 76, 60, 0.1);
+    padding: 6px 12px; /* plus d'espace à l'intérieur */
+    border-radius: 4px;
+    margin-bottom: 16px; /* plus d'espace en dessous */
+    display: inline-block; /* pour que le padding horizontal fonctionne bien */
+}
+
+.signin-error-message::before {
+    content: "⚠ "; /* icône d'avertissement */
+}

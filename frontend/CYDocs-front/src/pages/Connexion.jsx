@@ -13,6 +13,8 @@ export default function Connexion() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(""); 
   const [showResetModal, setShowResetModal] = useState(false);
+  
+  const [errorMessage, setErrorMessage] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
@@ -23,33 +25,45 @@ export default function Connexion() {
       if (mode === "signup") {
         // register
         
+        //Version pour tester en local
+        //const response = await axios.post("http://127.0.0.1:8081/api/users/register", {
+        
+        // Version pour tester avec la gateway
         const response = await axios.post("http://127.0.0.1:8080/user/api/users/register", {
+          
           
           email,
           password,
         });
         console.log("Registration response:", response.data);
+        
       } 
         // login
-        await axios.post("http://127.0.0.1:8080/user/api/users/login", {
+
+        //Version pour tester en local
+        //const responceLogin = await axios.post("http://127.0.0.1:8081/api/users/login", {
+        
+        //Version pour tester avec la gateway
+        const responceLogin = await axios.post("http://127.0.0.1:8080/user/api/users/login", {
           email,
           password,
         });
-      
 
       // persist a simple session locally and redirect to home
+      
+      
+      
+      
       const user = { name: derivedName, email };
       localStorage.setItem("cy_user", JSON.stringify(user));
+      localStorage.setItem("cy_token", responceLogin.data.token);
       navigate("/", { replace: true });
       window.location.reload();
-    } catch (err) {
-      console.error(err);
-      // show a friendly message; prefer server message if available
-      const serverMsg =
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        err?.response?.statusText;
-      setErrorMessage(serverMsg || "Utilisateur introuvable ou erreur réseau");
+      
+    } catch (erreur) {
+      console.error("Erreur recuperer = ", erreur.response.data.error);
+      setErrorMessage( erreur.response.data.error);
+      
     }
   };
 
@@ -97,12 +111,18 @@ export default function Connexion() {
             />
           </div>
 
+          {errorMessage && (
+                <span className="signin-error-message">
+                  {errorMessage}
+                </span>
+              )}
+
           <button className="signin-button" type="submit">
             {mode === "signup" ? "Create account" : "Log in"}
           </button>
 
           {mode === "login" && (
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: "10px" }}>
               <button
                 type="button"
                 className="signin-forgot btn btn-link"
@@ -110,10 +130,15 @@ export default function Connexion() {
               >
                 Forgot password?
               </button>
+
+              
             </div>
           )}
+
         </form>
       </div>
+
+      
 
       <PasswordResetModal
         open={showResetModal}
