@@ -1,3 +1,12 @@
+package com.example.demo.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.example.demo.model.User;
+import com.example.demo.repository.UserRepository;
+
 @Service
 public class PasswordResetService {
 
@@ -20,12 +29,11 @@ public class PasswordResetService {
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
-            userService.logger().warn("Utilisateur introuvable : " + email);
+            userService.getLogger().warn("Utilisateur introuvable : " + email);
             return false;
         }
 
         String token = tokenService.createResetToken(user);
-
         String resetLink = "https://l'adresse_du_front/reset-password?token=" + token;
 
         emailService.send(
@@ -37,7 +45,7 @@ public class PasswordResetService {
             "Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail."
         );
 
-        userService.logger().info("Token envoyé à " + email);
+        userService.getLogger().info("Token envoyé à " + email);
         return true;
     }
 
@@ -45,13 +53,13 @@ public class PasswordResetService {
 
         Long userId = tokenService.validate(tokenValue, "RESET");
         if (userId == null) {
-            userService.logger().warn("Token invalide ou expiré : " + tokenValue);
+            userService.getLogger().warn("Token invalide ou expiré : " + tokenValue);
             return false;
         }
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            userService.logger().warn("Aucun utilisateur pour ce token");
+            userService.getLogger().warn("Aucun utilisateur pour ce token");
             return false;
         }
 
@@ -60,7 +68,7 @@ public class PasswordResetService {
 
         tokenService.invalidate(tokenValue);
 
-        userService.logger().info("Mot de passe réinitialisé pour : " + user.getEmail());
+        userService.getLogger().info("Mot de passe réinitialisé pour : " + user.getEmail());
         return true;
     }
 }

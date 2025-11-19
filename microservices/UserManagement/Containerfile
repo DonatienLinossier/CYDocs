@@ -1,33 +1,27 @@
-# -------- Stage 1: Build (Utilisation de Maven pour compiler) --------
-    FROM eclipse-temurin:25-jdk-alpine AS build
-    WORKDIR /app
-    
-    # 1. Copier le pom.xml et le wrapper pour le caching des dépendances
-    COPY service/pom.xml .
-    COPY service/mvnw .
-    COPY service/.mvn .mvn
-    RUN chmod +x ./mvnw
-    
-    # 2. Télécharger les dépendances (cette couche sera cachée si le pom.xml ne change pas)
-    # On utilise 'resolve-plugins' pour le caching plus simple
-    RUN ./mvnw dependency:resolve -DskipTests
-    
-    # 3. Copier le code source complet
-    COPY service/src ./src
-    
-    # 4. Compiler l'application et créer le JAR
-    RUN ./mvnw package -DskipTests
-    
-    # -------- Stage 2: Runtime (Image finale légère) --------
-    FROM eclipse-temurin:25-jdk-alpine
-    WORKDIR /app
-    
-    # Copier le JAR compilé depuis la première étape, 
-    # en utilisant un wildcard (*) pour ne pas hardcoder la version.
-    COPY --from=build /app/target/*.jar ./demo.jar
-    
-    # Exposer le port de Spring Boot (par défaut 8080)
-    EXPOSE 8080
-    
-    # Lancer l'application
-    ENTRYPOINT ["java", "-jar", "demo.jar"]
+FROM eclipse-temurin:25-jdk-alpine AS build
+WORKDIR /app
+
+COPY service/pom.xml .
+COPY service/mvnw .
+COPY service/.mvn .mvn
+RUN chmod +x ./mvnw
+
+
+COPY service/libs/cy-framework-1.0.0.jar ./libs/cy-framework-1.0.0.jar
+
+RUN ./mvnw dependency:resolve -DskipTests
+
+COPY service/src ./src
+
+RUN ./mvnw package -DskipTests
+
+
+FROM eclipse-temurin:25-jdk-alpine
+WORKDIR /app
+
+
+COPY --from=build /app/target/*.jar ./demo.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "demo.jar"]
