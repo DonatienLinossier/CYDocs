@@ -10,8 +10,8 @@ import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import main.java.com.cyFramework.core.Acteur;
-import main.java.com.cyFramework.core.Message;
+import main.java.com.cyframework.core.Acteur;
+import main.java.com.cyframework.core.Message;
 
 @Service
 public class UserService extends Acteur {
@@ -27,14 +27,13 @@ public class UserService extends Acteur {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
 
-        this.demarrer();
+        this.demarrer(); 
     }
 
     @Override
     public void recevoirMessage(Message message) {
         getLogger().info("Message reçu : " + message.getContenu());
     }
-
 
     @CircuitBreaker(name = "authService", fallbackMethod = "fallbackAuth")
     public String login(String email, String rawPassword) {
