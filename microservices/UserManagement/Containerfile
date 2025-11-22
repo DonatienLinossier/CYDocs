@@ -4,10 +4,17 @@ WORKDIR /app
 COPY service/pom.xml .
 COPY service/mvnw .
 COPY service/.mvn .mvn
-RUN chmod +x ./mvnw
+RUN chmod +x mvnw
 
+COPY service/libs /app/libs
+COPY service/libs/cy-framework-1.0.0.jar /tmp/cy-framework-1.0.0.jar
 
-COPY service/libs/cy-framework-1.0.0.jar ./libs/cy-framework-1.0.0.jar
+RUN ./mvnw install:install-file \
+    -Dfile=/tmp/cy-framework-1.0.0.jar \
+    -DgroupId=com.cyframework \
+    -DartifactId=cy-framework \
+    -Dversion=1.0.0 \
+    -Dpackaging=jar
 
 RUN ./mvnw dependency:resolve -DskipTests
 
@@ -19,9 +26,7 @@ RUN ./mvnw package -DskipTests
 FROM eclipse-temurin:25-jdk-alpine
 WORKDIR /app
 
-
 COPY --from=build /app/target/*.jar ./demo.jar
 
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "demo.jar"]
