@@ -5,8 +5,9 @@ import { Client } from "@stomp/stompjs";
 import "../styles/App.css";
 import "../styles/Document.css";
 
-// --- WEBSOCKET CONFIGURATION ---
+// --- CONFIGURATION ---
 const WEBSOCKET_URL = "http://localhost:8080/document/ws";
+const API_URL = "http://localhost:8080/document/documents/get"; // Base URL for fetching
 
 export default function Document() {
   const { id } = useParams();
@@ -15,91 +16,97 @@ export default function Document() {
   const navigate = useNavigate();
   const editorRef = useRef(null);
 
-  // --- WEBSOCKET STATE ---
+  // --- STATE ---
   const wsClientRef = useRef(null);
-  // Unique session ID to prevent overwriting our own changes
   const [sessionId] = useState(() => "user-" + Math.random().toString(36).substr(2, 9));
+  
+  // Start with NULL so we know we are loading
+  const [doc, setDoc] = useState(null); 
+  const [status, setStatus] = useState("Loading...");
+  
+  // Track last saved content to detect changes
+  const lastSavedRef = useRef("");
 
-  // --- LOCAL STORAGE DATA (Existing Logic) ---
-  const sampleDocs = [
-    { id: 1, title: "Project Plan - Q4", author: "Alice", content: "<p>Project plan contents…</p>" },
-    { id: 2, title: "Design Guidelines", author: "Bob", content: "<p>Design guidelines contents…</p>" },
-    { id: 3, title: "User Onboarding", author: "Carol", content: "<p>User onboarding contents…</p>" },
-  ];
-
-  const [docs, setDocs] = useState(() => {
-    try {
-      const raw = localStorage.getItem("cy_docs");
-      return raw ? JSON.parse(raw) : sampleDocs;
-    } catch {
-      return sampleDocs;
-    }
-  });
-
-  const currentUser = (() => {
-    try {
-      const s = localStorage.getItem("cy_user");
-      return s ? JSON.parse(s) : null;
-    } catch { return null; }
-  })();
-
-  const [doc, setDoc] = useState(() => {
-    if (isNew) {
-      return {
-        id: null,
-        title: "Untitled document",
-        author: currentUser?.name || "You",
-        content: "<p></p>",
-      };
-    }
-    return docs.find((d) => d.id === docId) || null;
-  });
-
-  const [status, setStatus] = useState("");
-  const lastSavedRef = useRef(doc ? doc.content : "");
-
-  // --- WEBSOCKET CONNECTION EFFECT (Modern V7 Syntax) ---
+  // --- 1. FETCH DOCUMENT (Load on Start) ---
   useEffect(() => {
-    // 1. Don't connect if it's a new unsaved doc or invalid
-    if (isNew || !doc) return;
+    // A. Handle New Document (No Fetch Needed)
+    if (isNew) {
+      const newDoc = {
+        id: null,
+        title: "Untitled Document",
+        author: "You",
+        content: ""
+      };
+      setDoc(newDoc);
+      setStatus("New (Unsaved)");
+      lastSavedRef.current = "";
+      return;
+    }
 
-    // 2. Initialize Stomp Client
+    // B. Handle Existing Document (Fetch from API)
+    setStatus("Loading document...");
+    
+    fetch(`${API_URL}/${docId}`)
+      .then(async (res) => {
+        if (res.status === 404) throw new Error("404");
+        if (!res.ok) throw new Error("Network Error");
+        return res.json();
+      })
+      .then((data) => {
+        // 1. Update React State
+        setDoc(data);
+        
+        // 2. Update Editor Content immediately
+        if (editorRef.current) {
+          editorRef.current.innerHTML = data.content;
+        }
+        
+        // 3. Sync Reference so we don't show "Unsaved Changes" immediately
+        lastSavedRef.current = data.content;
+        setStatus("Ready");
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        if (err.message === "404") {
+          alert("Document not found!");
+          navigate("/"); // Go back to home
+        } else {
+          setStatus("Error loading file");
+        }
+      });
+  }, [docId, isNew, navigate]);
+
+  // --- 2. WEBSOCKET CONNECTION (Waits for doc to be loaded) ---
+  useEffect(() => {
+    // Stop if doc hasn't loaded yet
+    if (isNew || !doc) return; 
+
     const client = new Client({
-      // The factory allows the client to recreate the socket on disconnect (Auto-Reconnect)
       webSocketFactory: () => new SockJS(WEBSOCKET_URL),
-      
-      // Reconnect every 5 seconds if connection is lost
-      reconnectDelay: 5000, 
-      
-      // Debug logs (optional, help you see what's happening in console)
+      reconnectDelay: 5000,
       debug: (str) => console.log(str),
 
       onConnect: (frame) => {
-        setStatus("Connected");
+        setStatus("Connected (Live)");
         console.log("Connected: " + frame);
 
-        // 3. Subscribe to the document topic
         client.subscribe(`/topic/doc/${doc.id}`, (msg) => {
           if (msg.body) {
             try {
               const payload = JSON.parse(msg.body);
-              
-              // 4. Only update if the sender is NOT us (to avoid cursor jumps)
+              // Only update if it's from someone else
               if (payload.sender !== sessionId) {
-                // Update React State
                 setDoc((prev) => ({ ...prev, content: payload.content }));
                 
-                // Update Editor DOM
                 if (editorRef.current) {
-                  // Note: Updating innerHTML while user is typing will reset cursor.
-                  // For this simple implementation, we accept that risk or check focus.
-                  if (document.activeElement !== editorRef.current) {
-                      editorRef.current.innerHTML = payload.content;
-                  } else {
-                      // If focused, we still update to ensure sync, though it may feel jumpy.
-                      editorRef.current.innerHTML = payload.content;
-                  }
-                  lastSavedRef.current = payload.content;
+                   // Avoid resetting cursor if we are focused
+                   if (document.activeElement !== editorRef.current) {
+                       editorRef.current.innerHTML = payload.content;
+                   } else {
+                       // Force update (might jump cursor, but keeps sync)
+                       editorRef.current.innerHTML = payload.content;
+                   }
+                   lastSavedRef.current = payload.content;
                 }
               }
             } catch (e) {
@@ -108,163 +115,38 @@ export default function Document() {
           }
         });
       },
-
       onStompError: (frame) => {
-        console.error("Broker reported error: " + frame.headers["message"]);
-        console.error("Additional details: " + frame.body);
+        console.error("Broker error: " + frame.headers["message"]);
         setStatus("Connection Error");
       },
-
       onWebSocketClose: () => {
         setStatus("Disconnected");
       }
     });
 
-    // Activate the client
     client.activate();
     wsClientRef.current = client;
 
-    // Cleanup on unmount
     return () => {
-      if (wsClientRef.current) {
-        wsClientRef.current.deactivate();
-      }
+      if (wsClientRef.current) wsClientRef.current.deactivate();
     };
-  }, [docId, isNew, sessionId]);
-
-  // --- STANDARD EFFECTS ---
-  useEffect(() => {
-    if (!isNew) setDoc(docs.find((d) => d.id === docId) || null);
-  }, [docs, docId, isNew]);
-
-  useEffect(() => {
-    if (editorRef.current) editorRef.current.focus();
-  }, []);
-
-  useEffect(() => {
-    if (doc) lastSavedRef.current = doc.content || "";
-  }, [doc]);
-
-  if (!doc) {
-    return (
-      <div className="app-root">
-        <main className="site-main">
-          <div className="doc-notfound">
-            <button className="btn btn-outline" onClick={() => navigate(-1)}>Back</button>
-            <h2>Document not found</h2>
-            <p>The requested document does not exist.</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  }, [docId, isNew, sessionId, doc?.id]); // Depend on doc.id so we connect only after fetch
 
   // --- ACTIONS ---
   const format = (cmd, value = null) => {
     document.execCommand(cmd, false, value);
     editorRef.current && editorRef.current.focus();
-    handleInput(); // Trigger update immediately on formatting
+    handleInput();
   };
 
-  const save = useCallback(() => {
-    const html = editorRef.current ? editorRef.current.innerHTML : doc.content;
-    if (!isNew && html === lastSavedRef.current) return;
-
-    try {
-      const raw = localStorage.getItem("cy_docs");
-      const storedDocs = raw ? JSON.parse(raw) : docs;
-
-      if (isNew) {
-        const maxId = storedDocs.reduce((m, d) => Math.max(m, d.id || 0), 0);
-        const newId = maxId + 1;
-        const created = { ...doc, id: newId, content: html };
-        const updated = [...storedDocs, created];
-        localStorage.setItem("cy_docs", JSON.stringify(updated));
-
-        setDocs(updated);
-        setDoc(created);
-        if (editorRef.current) editorRef.current.innerHTML = created.content;
-        lastSavedRef.current = created.content;
-
-        setStatus("Saved");
-        setTimeout(() => setStatus(""), 1500);
-        navigate(`/document/${newId}`, { replace: true });
-        return;
-      }
-
-      const updated = storedDocs.map((d) => (d.id === doc.id ? { ...d, content: html, title: doc.title } : d));
-      localStorage.setItem("cy_docs", JSON.stringify(updated));
-
-      setDocs(updated);
-      const updatedDoc = updated.find((d) => d.id === doc.id);
-      if (updatedDoc) {
-        setDoc(updatedDoc);
-        if (editorRef.current) editorRef.current.innerHTML = updatedDoc.content;
-        lastSavedRef.current = updatedDoc.content;
-      }
-
-      setStatus("Saved");
-      setTimeout(() => setStatus(""), 1500);
-    } catch (e) {
-      console.error("Save failed", e);
-      setStatus("Save failed");
-      setTimeout(() => setStatus(""), 2000);
-    }
-  }, [doc, docs, isNew, navigate]);
-
-  const download = () => {
-    const blob = new Blob([editorRef.current?.innerText || ""], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(doc.title || "document").replace(/\s+/g, "_")}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setStatus("Link copied");
-      setTimeout(() => setStatus(""), 1500);
-    } catch {
-      setStatus("Copy failed");
-    }
-  };
-
-  // Autosave
-  useEffect(() => {
-    const interval = setInterval(() => {
-      try {
-        if (editorRef.current && editorRef.current.innerHTML !== lastSavedRef.current) {
-          save();
-        }
-      } catch (e) {}
-    }, 60_000);
-
-    return () => clearInterval(interval);
-  }, [save]);
-
-  // --- INPUT HANDLER (WebSocket Sending) ---
   const handleInput = () => {
     if (editorRef.current) {
       const content = editorRef.current.innerHTML;
+      setStatus("Connected (Live)");
 
-      // 1. Check local unsaved status
-      if (content !== lastSavedRef.current) {
-        setStatus("Unsaved changes");
-      } else {
-        setStatus("");
-      }
-
-      // 2. Send via WebSocket
-      // V7 Syntax: use 'publish' instead of 'send'
+      // Send via WebSocket
       if (wsClientRef.current && wsClientRef.current.connected) {
-         const payload = {
-            sender: sessionId,
-            content: content
-         };
-         
+         const payload = { sender: sessionId, content: content };
          wsClientRef.current.publish({
             destination: `/app/doc/${docId}`,
             body: JSON.stringify(payload)
@@ -273,7 +155,20 @@ export default function Document() {
     }
   };
 
-  // --- RENDER (Unchanged) ---
+  const save = useCallback(() => {
+    // TODO: Implement API Save (POST/PUT) here
+    console.log("Saving...");
+    setStatus("Saving...");
+    
+    // Example:
+    // fetch("http://localhost:8080/document/save", { method: "POST", body: ... })
+  }, [doc]);
+
+  // --- RENDER ---
+  if (!doc) {
+    return <div className="app-root"><main className="site-main"><h2>Loading Document...</h2></main></div>;
+  }
+
   return (
     <div className="app-root">
       <main className="site-main">
@@ -310,8 +205,6 @@ export default function Document() {
             <button type="button" className="btn" onClick={() => format("justifyCenter")} title="Align center">⤒</button>
             <button type="button" className="btn" onClick={() => format("justifyRight")} title="Align right">⟶</button>
             <button type="button" className="btn btn-outline" onClick={save} title="Save">Save</button>
-            <button type="button" className="btn btn-secondary" onClick={download} title="Download">Download</button>
-            <button type="button" className="btn btn-outline" onClick={copyLink} title="Copy link">Share</button>
           </div>
         </div>
 
@@ -321,9 +214,12 @@ export default function Document() {
           suppressContentEditableWarning
           className="doc-editor"
           onInput={handleInput}
+          // Only used for initial render. Subsequent updates are handled manually via refs to preserve cursor if possible
           dangerouslySetInnerHTML={{ __html: doc.content }}
         />
+        <p>test</p>
       </main>
     </div>
+    
   );
 }
