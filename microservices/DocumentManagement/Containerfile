@@ -24,7 +24,7 @@
     
     # Copy the built JAR from the build stage
     COPY --from=build /app/target/demo-0.0.1-SNAPSHOT.jar ./demo.jar
-    
+   
     # Expose the port your Eureka server runs on
     EXPOSE 8080
     

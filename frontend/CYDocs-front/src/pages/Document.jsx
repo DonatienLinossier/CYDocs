@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 import "../styles/App.css";
 import "../styles/Document.css";
 
-/**
- * Simple document editor page.
- * - Supports creating a new document via route /document/new
- * - Saves new document to localStorage and navigates to its id
- * - Existing behavior preserved
- */
+// --- WEBSOCKET CONFIGURATION ---
+const WEBSOCKET_URL = "http://localhost:8080/document/ws";
 
 export default function Document() {
   const { id } = useParams();
@@ -17,6 +15,12 @@ export default function Document() {
   const navigate = useNavigate();
   const editorRef = useRef(null);
 
+  // --- WEBSOCKET STATE ---
+  const wsClientRef = useRef(null);
+  // Unique session ID to prevent overwriting our own changes
+  const [sessionId] = useState(() => "user-" + Math.random().toString(36).substr(2, 9));
+
+  // --- LOCAL STORAGE DATA (Existing Logic) ---
   const sampleDocs = [
     { id: 1, title: "Project Plan - Q4", author: "Alice", content: "<p>Project plan contents…</p>" },
     { id: 2, title: "Design Guidelines", author: "Bob", content: "<p>Design guidelines contents…</p>" },
@@ -52,17 +56,88 @@ export default function Document() {
   });
 
   const [status, setStatus] = useState("");
-
-  // track last saved HTML to avoid unnecessary writes
   const lastSavedRef = useRef(doc ? doc.content : "");
 
+  // --- WEBSOCKET CONNECTION EFFECT (Modern V7 Syntax) ---
   useEffect(() => {
-    // refresh doc if docs change (for existing docs)
+    // 1. Don't connect if it's a new unsaved doc or invalid
+    if (isNew || !doc) return;
+
+    // 2. Initialize Stomp Client
+    const client = new Client({
+      // The factory allows the client to recreate the socket on disconnect (Auto-Reconnect)
+      webSocketFactory: () => new SockJS(WEBSOCKET_URL),
+      
+      // Reconnect every 5 seconds if connection is lost
+      reconnectDelay: 5000, 
+      
+      // Debug logs (optional, help you see what's happening in console)
+      debug: (str) => console.log(str),
+
+      onConnect: (frame) => {
+        setStatus("Connected");
+        console.log("Connected: " + frame);
+
+        // 3. Subscribe to the document topic
+        client.subscribe(`/topic/doc/${doc.id}`, (msg) => {
+          if (msg.body) {
+            try {
+              const payload = JSON.parse(msg.body);
+              
+              // 4. Only update if the sender is NOT us (to avoid cursor jumps)
+              if (payload.sender !== sessionId) {
+                // Update React State
+                setDoc((prev) => ({ ...prev, content: payload.content }));
+                
+                // Update Editor DOM
+                if (editorRef.current) {
+                  // Note: Updating innerHTML while user is typing will reset cursor.
+                  // For this simple implementation, we accept that risk or check focus.
+                  if (document.activeElement !== editorRef.current) {
+                      editorRef.current.innerHTML = payload.content;
+                  } else {
+                      // If focused, we still update to ensure sync, though it may feel jumpy.
+                      editorRef.current.innerHTML = payload.content;
+                  }
+                  lastSavedRef.current = payload.content;
+                }
+              }
+            } catch (e) {
+              console.error("WS Parse error", e);
+            }
+          }
+        });
+      },
+
+      onStompError: (frame) => {
+        console.error("Broker reported error: " + frame.headers["message"]);
+        console.error("Additional details: " + frame.body);
+        setStatus("Connection Error");
+      },
+
+      onWebSocketClose: () => {
+        setStatus("Disconnected");
+      }
+    });
+
+    // Activate the client
+    client.activate();
+    wsClientRef.current = client;
+
+    // Cleanup on unmount
+    return () => {
+      if (wsClientRef.current) {
+        wsClientRef.current.deactivate();
+      }
+    };
+  }, [docId, isNew, sessionId]);
+
+  // --- STANDARD EFFECTS ---
+  useEffect(() => {
     if (!isNew) setDoc(docs.find((d) => d.id === docId) || null);
   }, [docs, docId, isNew]);
 
   useEffect(() => {
-    // focus editor on mount
     if (editorRef.current) editorRef.current.focus();
   }, []);
 
@@ -84,22 +159,18 @@ export default function Document() {
     );
   }
 
+  // --- ACTIONS ---
   const format = (cmd, value = null) => {
     document.execCommand(cmd, false, value);
     editorRef.current && editorRef.current.focus();
-    if (editorRef.current && editorRef.current.innerHTML !== lastSavedRef.current) {
-      setStatus("Unsaved changes");
-    }
+    handleInput(); // Trigger update immediately on formatting
   };
 
-  // replace existing save implementation with this more robust version
   const save = useCallback(() => {
     const html = editorRef.current ? editorRef.current.innerHTML : doc.content;
-    // no change -> skip
     if (!isNew && html === lastSavedRef.current) return;
 
     try {
-      // read latest docs from localStorage to avoid stale closures
       const raw = localStorage.getItem("cy_docs");
       const storedDocs = raw ? JSON.parse(raw) : docs;
 
@@ -110,7 +181,6 @@ export default function Document() {
         const updated = [...storedDocs, created];
         localStorage.setItem("cy_docs", JSON.stringify(updated));
 
-        // update state and editor immediately with the saved version
         setDocs(updated);
         setDoc(created);
         if (editorRef.current) editorRef.current.innerHTML = created.content;
@@ -122,11 +192,9 @@ export default function Document() {
         return;
       }
 
-      // existing doc: update stored docs
       const updated = storedDocs.map((d) => (d.id === doc.id ? { ...d, content: html, title: doc.title } : d));
       localStorage.setItem("cy_docs", JSON.stringify(updated));
 
-      // update state and editor immediately with the saved version
       setDocs(updated);
       const updatedDoc = updated.find((d) => d.id === doc.id);
       if (updatedDoc) {
@@ -164,38 +232,48 @@ export default function Document() {
     }
   };
 
-  // autosave every minute if content changed
+  // Autosave
   useEffect(() => {
     const interval = setInterval(() => {
       try {
         if (editorRef.current && editorRef.current.innerHTML !== lastSavedRef.current) {
           save();
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }, 60_000);
 
-    return () => {
-      clearInterval(interval);
-      try {
-        if (editorRef.current && editorRef.current.innerHTML !== lastSavedRef.current) {
-          save();
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
+    return () => clearInterval(interval);
   }, [save]);
 
+  // --- INPUT HANDLER (WebSocket Sending) ---
   const handleInput = () => {
-    if (editorRef.current && editorRef.current.innerHTML !== lastSavedRef.current) {
-      setStatus("Unsaved changes");
-    } else {
-      setStatus("");
+    if (editorRef.current) {
+      const content = editorRef.current.innerHTML;
+
+      // 1. Check local unsaved status
+      if (content !== lastSavedRef.current) {
+        setStatus("Unsaved changes");
+      } else {
+        setStatus("");
+      }
+
+      // 2. Send via WebSocket
+      // V7 Syntax: use 'publish' instead of 'send'
+      if (wsClientRef.current && wsClientRef.current.connected) {
+         const payload = {
+            sender: sessionId,
+            content: content
+         };
+         
+         wsClientRef.current.publish({
+            destination: `/app/doc/${docId}`,
+            body: JSON.stringify(payload)
+         });
+      }
     }
   };
 
+  // --- RENDER (Unchanged) ---
   return (
     <div className="app-root">
       <main className="site-main">
@@ -216,7 +294,6 @@ export default function Document() {
           <div className="doc-status">{status}</div>
         </div>
 
-        {/* centered toolbar placed above the editor */}
         <div className="doc-toolbar-center">
           <div className="doc-toolbar">
             <button type="button" className="btn" onClick={() => format("undo")} title="Undo">↶</button>
