@@ -13,52 +13,6 @@ import java.util.Map;
 @RestController
 public class ControllerError implements ErrorController {
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
-    @GetMapping("/websock")
-    public Map<String, Object> websock() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Document created!");
-        response.put("status", 200);
-
-        messagingTemplate.convertAndSend("/topic/updates", response);
-
-        return response;
-    }
-
-    @GetMapping("/createDoc")
-    public Map<String, Object> createDoc() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Document created!");
-        response.put("status", 200);
-        return response;
-    }
-
-    @GetMapping("/deleteDoc")
-    public Map<String, Object> deleteDoc() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Document deleted!");
-        response.put("status", 200);
-        return response;
-    }
-
-    @GetMapping("/getDoc")
-    public Map<String, Object> getDoc() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Document retrieved!");
-        response.put("status", 200);
-        return response;
-    }
-
-    @GetMapping("/updateDoc")
-    public Map<String, Object> updateDoc() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Document updated!");
-        response.put("status", 200);
-        return response;
-    }
-
     @RequestMapping("/error")
     public Map<String, Object> handleError(HttpServletRequest request) {
         Object statusObj = request.getAttribute("jakarta.servlet.error.status_code");

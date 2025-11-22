@@ -76,6 +76,12 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.cyframework</groupId>
+            <artifactId>cy-framework</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- databse -->
         <dependency>
             <groupId>mysql</groupId>
