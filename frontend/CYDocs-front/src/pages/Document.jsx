@@ -7,7 +7,7 @@ import "../styles/Document.css";
 
 // --- CONFIGURATION ---
 const WEBSOCKET_URL = "http://localhost:8080/document/ws";
-const API_URL = "http://localhost:8080/document/documents/get"; // Base URL for fetching
+const API_URL = "http://localhost:8080/document/documents/get";
 
 export default function Document() {
   const { id } = useParams();
@@ -24,12 +24,10 @@ export default function Document() {
   const [doc, setDoc] = useState(null); 
   const [status, setStatus] = useState("Loading...");
   
-  // Track last saved content to detect changes
   const lastSavedRef = useRef("");
 
   // --- 1. FETCH DOCUMENT (Load on Start) ---
   useEffect(() => {
-    // A. Handle New Document (No Fetch Needed)
     if (isNew) {
       const newDoc = {
         id: null,
@@ -43,7 +41,6 @@ export default function Document() {
       return;
     }
 
-    // B. Handle Existing Document (Fetch from API)
     setStatus("Loading document...");
     
     fetch(`${API_URL}/${docId}`)
@@ -53,15 +50,10 @@ export default function Document() {
         return res.json();
       })
       .then((data) => {
-        // 1. Update React State
         setDoc(data);
-        
-        // 2. Update Editor Content immediately
         if (editorRef.current) {
           editorRef.current.innerHTML = data.content;
         }
-        
-        // 3. Sync Reference so we don't show "Unsaved Changes" immediately
         lastSavedRef.current = data.content;
         setStatus("Ready");
       })
@@ -69,16 +61,15 @@ export default function Document() {
         console.error("Fetch error:", err);
         if (err.message === "404") {
           alert("Document not found!");
-          navigate("/"); // Go back to home
+          navigate("/"); 
         } else {
           setStatus("Error loading file");
         }
       });
   }, [docId, isNew, navigate]);
 
-  // --- 2. WEBSOCKET CONNECTION (Waits for doc to be loaded) ---
+  // --- 2. WEBSOCKET CONNECTION ---
   useEffect(() => {
-    // Stop if doc hasn't loaded yet
     if (isNew || !doc) return; 
 
     const client = new Client({
@@ -94,16 +85,12 @@ export default function Document() {
           if (msg.body) {
             try {
               const payload = JSON.parse(msg.body);
-              // Only update if it's from someone else
               if (payload.sender !== sessionId) {
                 setDoc((prev) => ({ ...prev, content: payload.content }));
-                
                 if (editorRef.current) {
-                   // Avoid resetting cursor if we are focused
                    if (document.activeElement !== editorRef.current) {
                        editorRef.current.innerHTML = payload.content;
                    } else {
-                       // Force update (might jump cursor, but keeps sync)
                        editorRef.current.innerHTML = payload.content;
                    }
                    lastSavedRef.current = payload.content;
@@ -130,7 +117,7 @@ export default function Document() {
     return () => {
       if (wsClientRef.current) wsClientRef.current.deactivate();
     };
-  }, [docId, isNew, sessionId, doc?.id]); // Depend on doc.id so we connect only after fetch
+  }, [docId, isNew, sessionId, doc?.id]);
 
   // --- ACTIONS ---
   const format = (cmd, value = null) => {
@@ -144,7 +131,6 @@ export default function Document() {
       const content = editorRef.current.innerHTML;
       setStatus("Connected (Live)");
 
-      // Send via WebSocket
       if (wsClientRef.current && wsClientRef.current.connected) {
          const payload = { sender: sessionId, content: content };
          wsClientRef.current.publish({
@@ -155,16 +141,36 @@ export default function Document() {
     }
   };
 
+  const download = () => {
+    // FIX: Ensure doc exists before accessing title
+    if (!doc) return;
+    const blob = new Blob([editorRef.current?.innerText || ""], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(doc.title || "document").replace(/\s+/g, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setStatus("Link copied");
+      setTimeout(() => setStatus(""), 1500);
+    } catch {
+      setStatus("Copy failed");
+    }
+  };
+
   const save = useCallback(() => {
-    // TODO: Implement API Save (POST/PUT) here
     console.log("Saving...");
-    setStatus("Saving...");
-    
-    // Example:
-    // fetch("http://localhost:8080/document/save", { method: "POST", body: ... })
+    // Implement API Save here
   }, [doc]);
 
   // --- RENDER ---
+  
+  // 🛑 THIS IS THE CRITICAL CHECK YOU WERE MISSING 🛑
   if (!doc) {
     return <div className="app-root"><main className="site-main"><h2>Loading Document...</h2></main></div>;
   }
@@ -204,7 +210,8 @@ export default function Document() {
             <button type="button" className="btn" onClick={() => format("justifyLeft")} title="Align left">⟵</button>
             <button type="button" className="btn" onClick={() => format("justifyCenter")} title="Align center">⤒</button>
             <button type="button" className="btn" onClick={() => format("justifyRight")} title="Align right">⟶</button>
-            <button type="button" className="btn btn-outline" onClick={save} title="Save">Save</button>
+            <button type="button" className="btn btn-secondary" onClick={download} title="Download">Download</button>
+            <button type="button" className="btn btn-outline" onClick={copyLink} title="Copy link">Share</button>
           </div>
         </div>
 
@@ -214,12 +221,9 @@ export default function Document() {
           suppressContentEditableWarning
           className="doc-editor"
           onInput={handleInput}
-          // Only used for initial render. Subsequent updates are handled manually via refs to preserve cursor if possible
           dangerouslySetInnerHTML={{ __html: doc.content }}
         />
-        <p>test</p>
       </main>
     </div>
-    
   );
 }
