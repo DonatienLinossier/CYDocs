@@ -11,8 +11,9 @@ public class DemoApplication {
 	private static final Logger logger = new Logger("DemoApplication");
 
 	public static void main(String[] args) {
-		logger.info("Starting");
+		logger.info("azertyiop");
 		SpringApplication.run(DemoApplication.class, args);
+		logger.info("azertyiop1");
 	}
 
 }
