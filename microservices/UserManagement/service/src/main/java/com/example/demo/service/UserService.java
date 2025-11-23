@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import main.java.com.cyFramework.core.Acteur;
 import main.java.com.cyFramework.core.Message;
 
@@ -35,7 +34,6 @@ public class UserService extends Acteur {
         getLogger().info("Message reçu : " + message.getContenu());
     }
 
-    @CircuitBreaker(name = "authService", fallbackMethod = "fallbackAuth")
     public String login(String email, String rawPassword) {
 
         User existing = userRepository.findByEmail(email).orElse(null);
@@ -75,7 +73,6 @@ public class UserService extends Acteur {
         User saved = userRepository.save(user);
 
         getLogger().info("Utilisateur enregistré : " + saved.getUsername());
-
 
         return saved;
     }
