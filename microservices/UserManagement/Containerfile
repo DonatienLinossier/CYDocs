@@ -1,27 +1,31 @@
+# -------- Stage 1: Build --------
 FROM eclipse-temurin:25-jdk-alpine AS build
 WORKDIR /app
 
-COPY service/pom.xml .
+# 1. Copy Maven wrapper and POM
 COPY service/mvnw .
 COPY service/.mvn .mvn
-RUN chmod +x mvnw
+COPY service/pom.xml .
 
-COPY service/libs /app/libs
-COPY service/libs/cy-framework-1.0.0.jar /tmp/cy-framework-1.0.0.jar
+# 2. Make Maven wrapper executable
+RUN chmod +x ./mvnw
+
+# 3. Copy the JAR into the container's temp folder
+COPY service/libs/cy-framework-1.0.0.jar /tmp/cy-framework.jar
 
 RUN ./mvnw install:install-file \
-    -Dfile=/tmp/cy-framework-1.0.0.jar \
+    -Dfile=/tmp/cy-framework.jar \
     -DgroupId=com.cyframework \
     -DartifactId=cy-framework \
     -Dversion=1.0.0 \
     -Dpackaging=jar
 
-RUN ./mvnw dependency:resolve -DskipTests
+# 5. NOW run go-offline (Maven will now find the jar locally)
+RUN ./mvnw dependency:go-offline
 
+# 6. Continue build...
 COPY service/src ./src
-
 RUN ./mvnw package -DskipTests
-
 
 FROM eclipse-temurin:25-jdk-alpine
 WORKDIR /app
