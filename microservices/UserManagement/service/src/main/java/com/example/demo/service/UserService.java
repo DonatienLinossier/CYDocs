@@ -63,6 +63,25 @@ public class UserService extends Acteur {
         getLogger().info("Déconnexion : token supprimé " + token);
     }
 
+    public Long getUserIdFromToken(String token) {
+
+        Long userId = tokenService.validate(token, "LOGIN");
+
+        if (userId == null) {
+            getLogger().warn("Token invalide ou expiré — impossible de récupérer l'utilisateur.");
+            throw new RuntimeException("Token invalide ou expiré.");
+        }
+
+        getLogger().info("ID utilisateur récupéré via token : " + userId);
+        return userId;
+    }
+
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id).orElse(null);
+    }
+
+
     public User registerUser(User user) {
 
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {

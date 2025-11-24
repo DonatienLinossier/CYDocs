@@ -73,6 +73,14 @@ public class UserController {
         }
     }
 
+    @GetMapping("/TokenID")
+    public ResponseEntity<?> getMyProfile(@RequestParam String token) {
+
+        Long userId = userService.getUserIdFromToken(token);
+        User user = userService.getUserById(userId);
+
+        return ResponseEntity.ok(user);
+    }
     
    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User user) {
