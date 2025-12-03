@@ -53,7 +53,7 @@ public class ActeurUtilisateur extends Acteur {
 ---
 
 
-# 📡 Communication entre microservices -- CY-Framework
+# Communication entre microservices -- CY-Framework
 
 CY-Framework fournit un système d'envoi de messages unifié permettant :
 
@@ -173,7 +173,7 @@ public class ActeurDocument extends Acteur {
                             → recevoirMessage()
 
 
-### Pour développer le framework
+# Pour développer le framework
 
 ## Export en jar 
 
