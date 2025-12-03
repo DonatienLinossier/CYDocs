@@ -1,0 +1,7 @@
+com\cyFramework\core\ConsulClientService.class
+com\cyFramework\core\MessageController.class
+com\cyFramework\core\ActorRegistry.class
+com\cyFramework\core\Logger.class
+com\cyFramework\core\Message.class
+com\cyFramework\core\Acteur.class
+com\cyFramework\core\MessageSender.class
