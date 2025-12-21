@@ -1,6 +1,9 @@
 package com.example.demo.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Map;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -11,10 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.model.Token;
 import com.example.demo.model.User;
 import com.example.demo.repository.TokenRepository;
-
-import java.util.Base64;
-import java.util.Map;
-import java.time.Instant;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional
@@ -28,7 +28,6 @@ public class TokenService {
 
     private static final long LOGIN_TTL = 3600;    // 1h
     private static final long RESET_TTL = 900;     // 15 min
-
 
     private String sign(String data) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");

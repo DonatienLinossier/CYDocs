@@ -31,7 +31,26 @@ public class UserService extends Acteur {
 
     @Override
     public void recevoirMessage(Message message) {
-        getLogger().info("Message reçu : " + message.getContenu());
+
+        getLogger().info(
+            "Message reçu | emetteur=" + message.getEmetteur() +
+            " | contenu=" + message.getContenu()
+        );
+
+        switch (message.getContenu()) {
+
+            case "PING" -> {
+                getLogger().info("PING reçu → OK");
+            }
+
+            case "TEST" -> {
+                getLogger().info("TEST reçu → traitement futur ici");
+            }
+
+            default -> {
+                getLogger().warn("Action inconnue : " + message.getContenu());
+            }
+        }
     }
 
     public String login(String email, String rawPassword) {

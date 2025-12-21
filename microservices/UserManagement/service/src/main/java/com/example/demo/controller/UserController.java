@@ -31,6 +31,21 @@ public class UserController {
     private UserService userService;
 
 
+    @PostMapping("/actor-test")
+    public ResponseEntity<String> sendActorMessage(@RequestParam String action) {
+
+        Message msg = new Message(
+            "UserController",
+            "UserService",
+            action
+        );
+
+        userService.envoyerMessage("UserService", msg);
+
+        return ResponseEntity.ok("Message envoyé à UserService : " + action);   
+    }
+
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
