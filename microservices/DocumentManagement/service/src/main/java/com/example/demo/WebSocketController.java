@@ -4,6 +4,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+import com.example.demo.services.WebSocketService;
 
 @Controller
 public class WebSocketController {
@@ -25,10 +26,13 @@ public class WebSocketController {
     @MessageMapping("/doc/{docId}")
     @SendTo("/topic/doc/{docId}") // Broadcast to all users on this doc
     public DocMessage updateDoc(@DestinationVariable String docId, DocMessage message) {
-        System.out.println("Received on doc " + docId + ": " + message.getSender() + " -> " + message.getContent()); //TODO: use framework log
 
-        // TODO: check permission, handle conflicts, save to db.
+        WebSocketService wsService = new WebSocketService();
+        Long idAsLong = Long.parseLong(docId);
+        wsService.logDocId(idAsLong, message.getSender(), message.getContent());
+        wsService.sendSaveMessage(idAsLong, message.getContent());
 
-        return message; // Broadcast to all subscribers
+
+        return message; // Broadcast to all subscribers (see springboot with websocket)
     }
 }
