@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import "../styles/App.css";
 
 function App() {
@@ -8,12 +9,19 @@ function App() {
     const stored = localStorage.getItem("cy_user");
     return stored ? JSON.parse(stored) : null;
   });
-  const [docs] = useState([
-    { id: 1, title: "Project Plan - Q4", author: "Alice", excerpt: "Outline and milestones" },
-    { id: 2, title: "Design Guidelines", author: "Bob", excerpt: "Typography, colors, components" },
-    { id: 3, title: "User Onboarding", author: "Carol", excerpt: "Flow and copy suggestions" },
-    { id: 4, title: "Test fio", author: "Fio :)", excerpt: "blablabla" },
-  ]);
+  const [docs, setDocs] = useState([]);
+  useEffect(() => { // a revoir le backend ne demande pas le token FIO
+    if (!user) return;
+
+    axios
+      .get(`http://localhost:8080/document/documents/user/2`)// a changer FIO ${user.id}
+      .then((res) => {
+        setDocs(res.data);
+      })
+      .catch((err) => {
+        console.error("Erreur lors de la récupération des documents :", err);
+      });
+  }, [user]);
 
   const filtered = docs.filter(
     (d) =>
@@ -26,9 +34,7 @@ const signOut = async () => {
     const token = localStorage.getItem("cy_token");
 
     if (token) {
-      //Version pour tester en local
-      //await axios.post(`http://127.0.0.1:8081/api/users/logout?token=${token}`);
-
+      
       //Version pour tester avec la gateway
       await axios.post(`http://127.0.0.1:8080/user/api/users/logout?token=${token}`);
     }
