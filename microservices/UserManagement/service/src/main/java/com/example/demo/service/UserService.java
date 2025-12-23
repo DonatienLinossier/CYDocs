@@ -6,11 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.cyFramework.core.Acteur;
+import com.cyFramework.core.Message;
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 
-import main.java.com.cyFramework.core.Acteur;
-import main.java.com.cyFramework.core.Message;
+
 
 @Service
 public class UserService extends Acteur {
