@@ -40,7 +40,7 @@ services:
         - NET_BIND_SERVICE
       networks:
         - internal-net
-      command: "agent -server -bootstrap -ui -client=0.0.0.0 -dns-port=8600 -log-level=debug"
+      command: "agent -server -bootstrap -ui -client=0.0.0.0 -dns-port=8600 -log-level=debug -disable-host-node-id"
 
 
   user-management-service:
