@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/Connexion.css";
 import PasswordResetModal from "./PasswordResetModal";
@@ -9,6 +9,14 @@ export default function Connexion() {
   const navigate = useNavigate();
   const params = new URLSearchParams(loc.search);
   const mode = params.get("mode") === "signup" ? "signup" : "login";
+  const token = params.get("token");
+
+  useEffect(() => {
+    if (token) {
+      setShowResetModal(true); 
+    }
+  }, [token]);
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(""); 
@@ -25,8 +33,6 @@ export default function Connexion() {
       if (mode === "signup") {
         // register
         
-        //Version pour tester en local
-        //const response = await axios.post("http://127.0.0.1:8081/api/users/register", {
         
         // Version pour tester avec la gateway
         const response = await axios.post("http://127.0.0.1:8080/user/api/users/register", {
@@ -40,8 +46,6 @@ export default function Connexion() {
       } 
         // login
 
-        //Version pour tester en local
-        //const responceLogin = await axios.post("http://127.0.0.1:8081/api/users/login", {
         
         //Version pour tester avec la gateway
         const responceLogin = await axios.post("http://127.0.0.1:8080/user/api/users/login", {
@@ -53,7 +57,6 @@ export default function Connexion() {
       
       
       
-      
       const user = { name: derivedName, email };
       localStorage.setItem("cy_user", JSON.stringify(user));
       localStorage.setItem("cy_token", responceLogin.data.token);
@@ -61,9 +64,13 @@ export default function Connexion() {
       window.location.reload();
       
     } catch (erreur) {
+      if(mode === "signup"){
+        console.error("Erreur sing in  = ", erreur.response.data);
+        setErrorMessage( erreur.response.data);
+      }else{
       console.error("Erreur recuperer = ", erreur.response.data.error);
       setErrorMessage( erreur.response.data.error);
-      
+      }
     }
   };
 

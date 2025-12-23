@@ -34,7 +34,7 @@ public class PasswordResetService {
         }
 
         String token = tokenService.createResetToken(user);
-        String resetLink = "http://localhost:5173/connexion?mode=login/reset-password?token=" + token;
+        String resetLink = "http://localhost:5173/connexion?mode=login&reset-password=true&token=" + token;
 
         emailService.send(
             email,

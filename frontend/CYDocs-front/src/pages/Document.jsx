@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
+import axios from "axios"; // <--- added
 import "../styles/App.css";
 import "../styles/Document.css";
 
@@ -168,6 +169,37 @@ export default function Document() {
     // Implement API Save here
   }, [doc]);
 
+  // new handler: create document if new before navigating back
+  const handleBack = async () => {
+    if (isNew && doc) {
+      console.log("Creating new document...");
+      const payload = {
+        title: doc.title || "Untitled Document",
+        author: doc.author || "You",
+        content: editorRef.current?.innerHTML ?? doc.content ?? ""
+      };
+
+      try {
+        setStatus("Creating document...");
+        const resp = await axios.post("http://localhost:8080/document/documents/create", payload);
+        // update local state with created doc if server returns it
+        if (resp && resp.data) {
+          console.log("Document created with ID:", resp.data.id);
+          setDoc(resp.data);
+          lastSavedRef.current = resp.data.content ?? payload.content;
+          setStatus("Created");
+        } else {
+          setStatus("Created (no body)");
+        }
+      } catch (err) {
+        console.error("Create failed", err);
+        setStatus("Create failed");
+        // continue navigation even on failure (optional)
+      }
+    }
+    navigate(-1);
+  };
+
   // --- RENDER ---
   
   // 🛑 THIS IS THE CRITICAL CHECK YOU WERE MISSING 🛑
@@ -180,7 +212,7 @@ export default function Document() {
       <main className="site-main">
         <div className="doc-header">
           <div className="doc-header-left">
-            <button className="btn btn-outline" onClick={() => navigate(-1)}>Back</button>
+            <button className="btn btn-outline" onClick={handleBack}>Back</button>
             {isNew ? (
               <input
                 className="doc-title-input"

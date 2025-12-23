@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import "../styles/PasswordResetModal.css";
+import axios from "axios";
 
 export default function PasswordResetModal({ open, onClose, prefillEmail = "", onSend }) {
   const [step, setStep] = useState(1); // 1 = enter email, 2 = set new password
@@ -11,18 +13,38 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
   const [confirm, setConfirm] = useState("");
   const inputRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const token = queryParams.get("token");
 
   useEffect(() => {
-    if (open) {
-      setStep(1);
-      setEmail(prefillEmail || "");
-      setPassword("");
-      setConfirm("");
-      setError("");
-      setSending(false);
-      setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
+    if (token) {
+      setStep(2);    // Lien cliqué → passer à l’étape 2
+    } else {
+      setStep(1);    // Pas de token → rester sur étape 1
     }
-  }, [open, prefillEmail]);
+  }, [token]);
+
+
+
+  useEffect(() => {
+  if (open) {
+    if (token) {
+      setStep(2); // 🔥 reset-password → étape 2
+    } else {
+      setStep(1); // 🔑 mode normal → étape 1
+    }
+
+    setEmail(prefillEmail || "");
+    setPassword("");
+    setConfirm("");
+    setError("");
+    setSending(false);
+
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+}, [open, token, prefillEmail]);
+
 
   useEffect(() => {
     const onKey = (e) => {
@@ -38,7 +60,6 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
 
   // added live validation helpers
   const passwordsMatch = password === confirm;
-  const passwordTooShort = password.length > 0 && password.length < 6;
 
   const submitEmail = async (e) => {
     e?.preventDefault();
@@ -49,33 +70,35 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
     }
     setError("");
     setSending(true);
+    console.log("token =", token);
 
     try {
-      // store a reset request (simulated)
-      const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-      const resets = JSON.parse(localStorage.getItem("cy_password_resets") || "[]");
-      resets.push({ email: v, token, date: new Date().toISOString() });
-      localStorage.setItem("cy_password_resets", JSON.stringify(resets));
+      
+      
+     const response = await axios.post(
+        "http://127.0.0.1:8080/user/api/users/forgot-password",
+        null, // body vide
+        { params: { email } }
+      );
 
-      // inform user a mail was sent then proceed to password entry step
-      window.alert(`A reset link has been sent to ${v}. Please check your inbox.`);
+
+      console.log("Password reset request response:", response);
+      window.alert(response.data);
 
       setSending(false);
-      setStep(2);
+      
       setTimeout(() => inputRef.current && inputRef.current.focus(), 60);
     } catch (err) {
       setSending(false);
-      setError("Failed to start reset. Try again.");
+      console.log("Error during password reset request:", err.response.data);
+      setError(err.response.data);
     }
   };
 
-  const submitNewPassword = async (e) => {
+  const submitNewPassword = async (e) => { // a revoir le lien ne senvoie pas FIO
     e?.preventDefault();
     const p = password;
-    if (p.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
+    
     if (p !== confirm) {
       setError("Passwords do not match.");
       return;
@@ -84,29 +107,30 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
     setSending(true);
 
     try {
-      // update or create a user record in localStorage (simulation)
-      // we keep single 'cy_user' (current user) for simplicity; also store in 'cy_users' list
-      const usersRaw = localStorage.getItem("cy_users");
-      const users = usersRaw ? JSON.parse(usersRaw) : [];
-      const existingIndex = users.findIndex((u) => u.email === email.trim());
-      const derivedName = email ? email.split("@")[0] : "User";
-      const userRecord = { name: derivedName, email: email.trim(), password: p };
-      if (existingIndex >= 0) users[existingIndex] = { ...users[existingIndex], ...userRecord };
-      else users.push(userRecord);
-      localStorage.setItem("cy_users", JSON.stringify(users));
+    const response = await axios.post(
+      "http://127.0.0.1:8080/user/api/users/reset-password",
+      null, // body vide
+      { params: { token, newPassword: p } }
+    );
 
-      // also set cy_user (current session) to the updated user
-      localStorage.setItem("cy_user", JSON.stringify({ name: derivedName, email: email.trim() }));
+    console.log("Reset password response:", response.data);
 
-      onSend?.({ email: email.trim() });
-      setSending(false);
-      onClose?.();
-      // redirect to home and reload so App sees updated state
-      navigate("/", { replace: true });
-      window.location.reload();
+    // feedback utilisateur
+    setSending(false);
+    onClose?.();
+    alert(response.data); // ou mieux : un toast / message React
+    navigate("/", { replace: true });
+    window.location.reload();
+      
     } catch (err) {
       setSending(false);
-      setError("Failed to set new password. Try again.");
+      if (err.response.status === 400) {
+        // token invalide ou expiré
+        setError("Le lien de réinitialisation est invalide ou expiré. Veuillez revenir à l'étape précédente.");
+      } else {
+        setError("Une erreur est survenue. Veuillez réessayer utérieurement.");
+      }
+      console.log("Error during setting new password:", err);
     }
   };
 
@@ -174,8 +198,8 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
             </label>
 
             {/* live validation messages */}
-            <div id="prm-password-help" style={{ fontSize: 13, color: passwordTooShort ? "#b00020" : "#64748b", minHeight: 18 }}>
-              {passwordTooShort ? "Password is too short (min 6 characters)." : (password.length > 0 ? "Password length OK." : "")}
+            <div id="prm-password-help" style={{ fontSize: 13, minHeight: 18 }}>
+              {password.length > 0 ? "Password length OK." : ""}
             </div>
             {!passwordsMatch && confirm.length > 0 && (
               <div className="prm-error" role="alert">Passwords do not match.</div>
@@ -190,8 +214,8 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={sending || passwordTooShort || !passwordsMatch}
-                title={!passwordsMatch ? "Passwords must match" : passwordTooShort ? "Password too short" : "Save new password"}
+                disabled={sending ||  !passwordsMatch}
+                title={!passwordsMatch ? "Passwords must match" : "Save new password"}
               >
                 {sending ? "Saving..." : "Save new password"}
               </button>
