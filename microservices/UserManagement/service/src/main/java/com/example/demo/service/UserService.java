@@ -28,32 +28,49 @@ public class UserService extends Acteur {
         this.passwordEncoder = passwordEncoder;
 
         this.demarrer(); 
+
+        this.recevoirMessage(new Message("DocumentManagementService", "UserService", "PING"));
+
     }
 
+    
     @Override
     public void recevoirMessage(Message message) {
+        String contenuBrut = message.getContenu();
+        if (contenuBrut == null) return;
 
-        getLogger().info(
-            "Message reçu | emetteur=" + message.getEmetteur() +
-            " | contenu=" + message.getContenu()
-        );
+        getLogger().info("Message reçu | emetteur=" + message.getEmetteur() + " | contenu=" + contenuBrut);
+        String action = contenuBrut.contains(":") ? contenuBrut.split(":")[0] : contenuBrut;
 
-        switch (message.getContenu()) {
-
+        switch (action) {
             case "PING" -> {
                 getLogger().info("PING reçu → OK");
             }
 
-            case "TEST" -> {
-                getLogger().info("TEST reçu → traitement futur ici");
+            case "TOKEN_REQUEST" -> {
+                try {
+                    if (!contenuBrut.contains(":")) {
+                        throw new IllegalArgumentException("Token manquant dans la requête");
+                    }
+                    
+                    String token = contenuBrut.substring(contenuBrut.indexOf(":") + 1).trim();
+
+                    Long userId = getUserIdFromToken(token);
+
+                    Message reponse = new Message("UserService", message.getEmetteur(), "TOKEN_SUCCESS:" + userId);
+                    this.envoyerMessage(message.getEmetteur(), reponse);
+                    
+                    getLogger().info("ID " + userId + " envoyé à " + message.getEmetteur());
+
+                } catch (Exception e) {
+                    getLogger().error("Erreur TOKEN_REQUEST : " + e.getMessage());
+                    this.envoyerMessage(message.getEmetteur(), new Message("UserService", message.getEmetteur(), "TOKEN_INVALID"));
+                }
             }
 
-            default -> {
-                getLogger().warn("Action inconnue : " + message.getContenu());
-            }
+            default -> getLogger().warn("Action inconnue : " + action);
         }
     }
-
     public String login(String email, String rawPassword) {
 
         User existing = userRepository.findByEmail(email).orElse(null);
