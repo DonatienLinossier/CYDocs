@@ -29,7 +29,7 @@ public class UserService extends Acteur {
 
         this.demarrer(); 
 
-        this.recevoirMessage(new Message("DocumentManagementService", "UserService", "PING"));
+        //this.recevoirMessage(new Message("DocumentManagementService", "UserService", "PING"));
 
     }
 
