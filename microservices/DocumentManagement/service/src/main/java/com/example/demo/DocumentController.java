@@ -7,9 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/documents")
+@CrossOrigin(origins = "http://localhost:3000")
 public class DocumentController {
 
     private final DocumentService service;
@@ -18,51 +20,41 @@ public class DocumentController {
         this.service = service;
     }
 
-    // CREATE
     @PostMapping("/create")
-    public ResponseEntity<Document> create(@RequestBody Document document) {
-        if (document.getId() != null && service.getById(document.getId()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409
-        }
-
-        Document created = service.create(document);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created); // 201
+    public ResponseEntity<String> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
+        String token = authHeader.replace("Bearer ", "");
+        // On lance la validation asynchrone via Younes
+        service.verifierTokenEtAction(token, document);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Création en cours (attente UserService)...");
     }
 
-    // UPDATE
     @PutMapping("/update/{id}")
-    public ResponseEntity<Document> update(@PathVariable Long id, @RequestBody Document document) {
-
-        if (service.getById(id).isEmpty()) {
-            return ResponseEntity.notFound().build(); // 404
-        }
-
-        Document updated = service.update(id, document);
-        return ResponseEntity.ok(updated); // 200
+    public ResponseEntity<String> update(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
+        String token = authHeader.replace("Bearer ", "");
+        document.setId(id);
+        service.verifierTokenEtAction(token, document);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Mise à jour en cours...");
     }
 
-    // GET DOCUMENTS FOR USER
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Document>> getUserDocuments(@PathVariable Long userId) {
-        List<Document> docs = service.getUserDocuments(userId);
-
-        return ResponseEntity.ok(docs); // 200
-    }
-
-    // GET DOCUMENT BY ID
     @GetMapping("/get/{id}")
     public ResponseEntity<Document> getById(@PathVariable Long id) {
-        return service.getById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        // Lecture directe pour le front
+        return service.getByIdDirect(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // DELETE
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (service.getById(id).isEmpty()) {
-            return ResponseEntity.notFound().build(); // 404
-        }
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Document>> getUserDocuments(@PathVariable Long userId) {
+        return ResponseEntity.ok(service.getUserDocuments(userId));
+    }
 
-        service.delete(id);
-        return ResponseEntity.noContent().build(); // 204
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        // On demande la validation avant suppression
+        service.envoyerDemandeValidation(token); 
+        // Note: La suppression réelle devra se faire dans traiterMessage
+        return ResponseEntity.noContent().build();
     }
 }
