@@ -181,7 +181,13 @@ export default function Document() {
 
       try {
         setStatus("Creating document...");
-        const resp = await axios.post("http://localhost:8080/document/documents/create", payload);
+        const token = localStorage.getItem("cy_token");
+        const resp = await axios.post(
+          "http://127.0.0.1:8080/document/api/documents/create",
+          
+          { headers: { Authorization: `Bearer ${token}` } },
+          payload
+        );
         // update local state with created doc if server returns it
         if (resp && resp.data) {
           console.log("Document created with ID:", resp.data.id);
