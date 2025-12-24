@@ -10,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/documents")
+@CrossOrigin(origins = "http://localhost:3000") // Indispensable pour React
 public class DocumentController {
 
     private final DocumentService service;
@@ -18,51 +19,56 @@ public class DocumentController {
         this.service = service;
     }
 
-    // CREATE
+    // CREATE (Asynchrone via Actor Framework)
     @PostMapping("/create")
-    public ResponseEntity<Document> create(@RequestBody Document document) {
-        if (document.getId() != null && service.getById(document.getId()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409
-        }
-
-        Document created = service.create(document);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created); // 201
+    public ResponseEntity<String> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
+        String token = authHeader.replace("Bearer ", ""); // Extraction du token
+        
+        // On délègue la validation de l'ID à Younes via le framework d'Ilan
+        service.create(document, token);
+        
+        // On retourne 202 car la création est en cours de validation asynchrone
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Demande de création transmise au service de validation...");
     }
 
     // UPDATE
     @PutMapping("/update/{id}")
-    public ResponseEntity<Document> update(@PathVariable Long id, @RequestBody Document document) {
-
-        if (service.getById(id).isEmpty()) {
-            return ResponseEntity.notFound().build(); // 404
+    public ResponseEntity<Document> update(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
+        String token = authHeader.replace("Bearer ", "");
+        
+        if (service.getByIdDirect(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
 
-        Document updated = service.update(id, document);
-        return ResponseEntity.ok(updated); // 200
+        Document updated = service.update(id, document, token);
+        return ResponseEntity.ok(updated);
     }
 
     // GET DOCUMENTS FOR USER
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Document>> getUserDocuments(@PathVariable Long userId) {
+        // userId est passé ici directement pour la récupération des accès
         List<Document> docs = service.getUserDocuments(userId);
-
-        return ResponseEntity.ok(docs); // 200
+        return ResponseEntity.ok(docs);
     }
 
     // GET DOCUMENT BY ID
     @GetMapping("/get/{id}")
     public ResponseEntity<Document> getById(@PathVariable Long id) {
-        return service.getById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        // Lecture directe pour l'affichage immédiat dans le front
+        return service.getByIdDirect(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // DELETE
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (service.getById(id).isEmpty()) {
-            return ResponseEntity.notFound().build(); // 404
+        if (service.getByIdDirect(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
 
         service.delete(id);
-        return ResponseEntity.noContent().build(); // 204
+        return ResponseEntity.noContent().build();
     }
 }
