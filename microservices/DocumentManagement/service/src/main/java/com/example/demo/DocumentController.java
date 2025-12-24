@@ -27,13 +27,17 @@ public class DocumentController {
         this.service = service;
     }
 
-    // CREATE 
-   @PostMapping("/create")
-public ResponseEntity<Document> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
-    String token = authHeader.replace("Bearer ", "");
-    Document created = service.create(document, token);
-    return ResponseEntity.status(HttpStatus.CREATED).body(created); // Le front reçoit le doc avec son ID !
-}
+    // CREATE test
+    @PostMapping("/create")
+    public ResponseEntity<Document> create(@RequestBody Document document) {
+        if (document.getId() != null && service.getById(document.getId()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409
+        }
+
+        Document created = service.create(document);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created); // 201
+    }
+
     // UPDATE
     @PutMapping("/update/{id}")
     public ResponseEntity<Document> update(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
