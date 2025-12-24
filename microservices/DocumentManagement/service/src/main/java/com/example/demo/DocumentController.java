@@ -71,4 +71,10 @@ public class DocumentController {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
+    // TEST : Accessible via GET /documents/test/
+@GetMapping("/test/")
+public ResponseEntity<String> test() {
+    // 202 Accepted est parfait pour signaler que le serveur a bien reçu la requête
+    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Test validé...");
+}
 }
