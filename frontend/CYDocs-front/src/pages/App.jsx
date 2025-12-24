@@ -13,8 +13,11 @@ function App() {
   useEffect(() => { // a revoir le backend ne demande pas le token FIO
     if (!user) return;
 
+    const token = localStorage.getItem("cy_token");
+
     axios
-      .get(`http://localhost:8080/document/api/documents/user/2`)// a changer FIO ${user.id}
+      // send only token as query parameter; backend will derive user from token
+      .get(`http://127.0.0.1:8080/document/api/documents/user?token=${token || ""}`) //a revoir cote backend
       .then((res) => {
         setDocs(res.data);
       })

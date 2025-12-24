@@ -183,7 +183,7 @@ export default function Document() {
         setStatus("Creating document...");
         const token = localStorage.getItem("cy_token");
         const resp = await axios.post(
-          "http://127.0.0.1:8080/document/api/documents/create",
+          "http://127.0.0.1:8080/api/documents/document/create", // a revoir cote backend
           
           { headers: { Authorization: `Bearer ${token}` } },
           payload
