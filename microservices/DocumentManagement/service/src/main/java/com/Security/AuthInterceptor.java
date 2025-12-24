@@ -12,7 +12,8 @@ public class AuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // Laisser passer le Preflight CORS
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            return true;
+            response.setStatus(HttpServletResponse.SC_OK); // On dit "Tout va bien" (200)
+            return false; // <--- ICI !! IL FAUT METTRE FALSE POUR NE PAS ALLER AU CONTROLLER
         }
 
         String authHeader = request.getHeader("Authorization");

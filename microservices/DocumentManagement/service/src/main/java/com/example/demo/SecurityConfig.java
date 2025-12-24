@@ -2,10 +2,12 @@ package com.example.demo;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -19,20 +21,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Désactive CSRF (bloquant pour les POST)
             .csrf(csrf -> csrf.disable())
-            
-            // 2. Désactive explicitement les formulaires de login par défaut (évite la redirection 302)
-            .formLogin(login -> login.disable())
+            .formLogin(login -> login.disable()) 
             .httpBasic(basic -> basic.disable())
-
-            // 3. Gestion du CORS via le Bean défini plus bas
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-            // 4. Force le mode STATELESS (Pas de session, pas de cookie JSESSIONID)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            
+            // AJOUT CRUCIAL ICI :
+            // Si une erreur 401/403 arrive, on renvoie le code HTTP brut.
+            // On INTERDIT à Spring de rediriger vers /login
+            .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 
-            // 5. Autorise TOUT (C'est ton Interceptor qui fera la police)
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll()
             );
@@ -44,7 +43,6 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        
         config.setAllowedOriginPatterns(List.of("*"));
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
@@ -54,7 +52,6 @@ public class SecurityConfig {
         return source;
     }
     
-    // Ce filtre force l'application des règles CORS avant même que Spring Security ne se réveille
     @Bean
     public CorsFilter corsFilter() {
         return new CorsFilter(corsConfigurationSource());

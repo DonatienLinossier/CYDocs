@@ -40,7 +40,7 @@ server {
         proxy_pass http://user-management/;
     }
 
-    location /document/ {
+    location /documents/ {
         # --- 1. PREFLIGHT (OPTIONS) ---
         if ($request_method = 'OPTIONS') {
             add_header 'Access-Control-Allow-Origin' $cors_origin always;
@@ -67,7 +67,7 @@ server {
         add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
 
         # --- 4. PROXY CONFIGURATION ---
-        proxy_pass http://document-management/;
+        proxy_pass http://document-management-service:8080/;
         
         # Enable WebSockets
         proxy_http_version 1.1;

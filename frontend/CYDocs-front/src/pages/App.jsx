@@ -14,9 +14,7 @@ function App() {
     if (!user) return;
 
     axios
-      //.get(`http://127.0.0.1:8080/document/api/documents/user/41`)// a changer FIO ${user.id}
-      
-      .get(`http://127.0.0.1:8080/document/api/documents/user/2`)
+      .get(`http://localhost:8080/document/api/documents/user/2`)// a changer FIO ${user.id}
       .then((res) => {
         setDocs(res.data);
       })

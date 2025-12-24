@@ -2,8 +2,8 @@ package com.example.demo.services;
 
 import com.example.demo.models.Document;
 import com.example.demo.models.DocumentAcces;
-import main.java.com.cyFramework.core.Acteur;
-import main.java.com.cyFramework.core.Message;
+import com.cyFramework.core.Acteur;
+import com.cyFramework.core.Message;
 import com.example.demo.repositories.DocumentAccesRepository;
 import com.example.demo.repositories.DocumentRepository;
 import org.springframework.stereotype.Service;
@@ -27,6 +27,22 @@ public class DocumentService extends Acteur {
         this.repo = repo;
         this.accesRepository = accesRepository;
         this.tokenService = tokenService;
+    }
+
+    @Override
+    public void recevoirMessage(Message message) {
+        String contenuBrut = message.getContenu();
+        if (contenuBrut == null) return;
+
+        getLogger().info("Message reçu | emetteur=" + message.getEmetteur() + " | contenu=" + contenuBrut);
+        String action = contenuBrut.contains(":") ? contenuBrut.split(":")[0] : contenuBrut;
+
+        switch (action) {
+            case "PING" -> {
+                getLogger().info("PING reçu → OK");
+            }
+            default -> getLogger().warn("Action inconnue : " + action);
+        }
     }
 
     public Document create(Document document, String token) {
