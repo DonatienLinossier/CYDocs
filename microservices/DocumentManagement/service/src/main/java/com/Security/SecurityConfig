@@ -1,0 +1,62 @@
+package com.example.demo;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.List;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            // 1. Désactive CSRF (bloquant pour les POST)
+            .csrf(csrf -> csrf.disable())
+            
+            // 2. Désactive explicitement les formulaires de login par défaut (évite la redirection 302)
+            .formLogin(login -> login.disable())
+            .httpBasic(basic -> basic.disable())
+
+            // 3. Gestion du CORS via le Bean défini plus bas
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            // 4. Force le mode STATELESS (Pas de session, pas de cookie JSESSIONID)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // 5. Autorise TOUT (C'est ton Interceptor qui fera la police)
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().permitAll()
+            );
+        
+        return http.build();
+    }
+
+    @Bean
+    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        // Autorise tout le monde (5173, 3000, Postman, etc.)
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+    
+    // Ce filtre force l'application des règles CORS avant même que Spring Security ne se réveille
+    @Bean
+    public CorsFilter corsFilter() {
+        return new CorsFilter(corsConfigurationSource());
+    }
+}

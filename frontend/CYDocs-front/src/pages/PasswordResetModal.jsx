@@ -95,7 +95,7 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
     }
   };
 
-  const submitNewPassword = async (e) => { // a revoir le lien ne senvoie pas FIO
+  const submitNewPassword = async (e) => { 
     e?.preventDefault();
     const p = password;
     
