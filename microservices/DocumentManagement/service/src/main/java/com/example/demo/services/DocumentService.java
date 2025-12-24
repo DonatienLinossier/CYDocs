@@ -2,7 +2,8 @@ package com.example.demo.services;
 
 import com.example.demo.models.Document;
 import com.example.demo.models.DocumentAcces;
-import com.example.demo.models.Message;
+import com.cyFramework.core.Acteur;
+import com.cyFramework.core.Message;
 import com.example.demo.repositories.DocumentAccesRepository;
 import com.example.demo.repositories.DocumentRepository;
 import org.springframework.stereotype.Service;
