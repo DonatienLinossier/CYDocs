@@ -2,8 +2,8 @@ package com.example.demo.services;
 
 import com.example.demo.models.Document;
 import com.example.demo.models.DocumentAcces;
-import com.cyFramework.core.Acteur;
-import com.cyFramework.core.Message;
+import main.java.com.cyFramework.core.Acteur;
+import main.java.com.cyFramework.core.Message;
 import com.example.demo.repositories.DocumentAccesRepository;
 import com.example.demo.repositories.DocumentRepository;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ public class DocumentService extends Acteur { // Hérite du framework d'Ilan
     }
 
     @Override
-public void traiterMessage(Message message) {
+public void recevoirMessage(Message message) {
     String contenu = message.getContenu();
 
     // Format attendu de Younes : "token:eyJhbGci...:123"
