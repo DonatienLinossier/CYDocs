@@ -12,7 +12,6 @@ import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 
 
-
 @Service
 public class UserService extends Acteur {
 
@@ -49,19 +48,14 @@ public class UserService extends Acteur {
 
             case "TOKEN_REQUEST" -> {
                 try {
-                    if (!contenuBrut.contains(":")) {
-                        throw new IllegalArgumentException("Token manquant dans la requête");
-                    }
-                    
                     String token = contenuBrut.substring(contenuBrut.indexOf(":") + 1).trim();
-
                     Long userId = getUserIdFromToken(token);
-
-                    Message reponse = new Message("UserService", message.getEmetteur(), "TOKEN_SUCCESS:" + userId);
+                    String contenuReponse = "token:" + token + ":" + userId;
+                    
+                    Message reponse = new Message("UserService", message.getEmetteur(), contenuReponse);
                     this.envoyerMessage(message.getEmetteur(), reponse);
                     
-                    getLogger().info("ID " + userId + " envoyé à " + message.getEmetteur());
-
+                    getLogger().info("Réponse envoyée avec token et ID " + userId);
                 } catch (Exception e) {
                     getLogger().error("Erreur TOKEN_REQUEST : " + e.getMessage());
                     this.envoyerMessage(message.getEmetteur(), new Message("UserService", message.getEmetteur(), "TOKEN_INVALID"));

@@ -30,7 +30,7 @@ public class DocumentService extends Acteur { // Hérite du framework d'Ilan
         this.accesRepository = accesRepository;
     }
 
-    // --- 1. LOGIQUE DE CRÉATION (ASYNCHRONE AVEC YOUNES) ---
+    // --- 1. LOGIQUE DE CRÉATION (ASYNCHRONE AVEC YOUNES) ---w
 
     public void create(Document document, String token) {
         documentsEnAttente.put(token, document);
@@ -82,7 +82,6 @@ public void recevoirMessage(Message message) {
     }
 }
 
-    // --- 2. LOGIQUE DE GESTION CLASSIQUE (SYNCHRONE) ---
 
     public Optional<Document> getByIdDirect(Long id) {
         return repo.findById(id); //
