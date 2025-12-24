@@ -27,18 +27,13 @@ public class DocumentController {
         this.service = service;
     }
 
-    // CREATE (Asynchrone via Actor Framework)
-    @PostMapping("/create")
-    public ResponseEntity<String> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
-        String token = authHeader.replace("Bearer ", ""); // Extraction du token
-        
-        // On délègue la validation de l'ID à Younes via le framework d'Ilan
-        service.create(document, token);
-        
-        // On retourne 202 car la création est en cours de validation asynchrone
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Demande de création transmise au service de validation...");
-    }
-
+    // CREATE 
+   @PostMapping("/create")
+public ResponseEntity<Document> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
+    String token = authHeader.replace("Bearer ", "");
+    Document created = service.create(document, token);
+    return ResponseEntity.status(HttpStatus.CREATED).body(created); // Le front reçoit le doc avec son ID !
+}
     // UPDATE
     @PutMapping("/update/{id}")
     public ResponseEntity<Document> update(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody Document document) {

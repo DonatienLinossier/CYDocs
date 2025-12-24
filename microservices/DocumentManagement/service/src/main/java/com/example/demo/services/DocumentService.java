@@ -15,73 +15,41 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class DocumentService extends Acteur { // Hérite du framework d'Ilan
+public class DocumentService extends Acteur {
 
     private final DocumentRepository repo;
     private final DocumentAccesRepository accesRepository;
-    
-    // Stockage temporaire pour les créations en cours
-    private final Map<String, Document> documentsEnAttente = new ConcurrentHashMap<>();
+    private final TokenService tokenService; // Injection ici
 
-    public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository) {
-        super("DocumentManagementService"); // Nom de l'acteur
-        this.demarrer(); // Lance le thread de l'acteur
+    public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository, TokenService tokenService) {
+        super("DocumentManagementService");
+        this.demarrer();
         this.repo = repo;
         this.accesRepository = accesRepository;
+        this.tokenService = tokenService;
     }
 
-    // --- 1. LOGIQUE DE CRÉATION (ASYNCHRONE AVEC YOUNES) ---w
+    public Document create(Document document, String token) {
+        // Validation synchrone : on obtient l'ID tout de suite
+        Long userId = tokenService.validate(token, "LOGIN");
 
-    public void create(Document document, String token) {
-        documentsEnAttente.put(token, document);
-        demanderUserId(token); // Envoie le message à Younes
-    }
-
-    public void demanderUserId(String token) {
-        String contenu = "TOKEN_REQUEST:" + token;
-        Message msg = new Message("DocumentManagementService", "UserService", contenu);
-        this.envoyerMessage("UserService", msg); // Utilise le framework
-    }
-
-    @Override
-public void recevoirMessage(Message message) {
-    String contenu = message.getContenu();
-
-    // Format attendu de Younes : "token:eyJhbGci...:123"
-    if (contenu.startsWith("token:")) {
-        try {
-            String[] parts = contenu.split(":");
-            
-            if (parts.length >= 3) {
-                String tokenRecu = parts[1].trim(); // Récupère le token
-                Long userId = Long.parseLong(parts[2].trim()); // Récupère l'ID
-
-                // On retrouve le BON document grâce au token
-                Document doc = documentsEnAttente.remove(tokenRecu);
-
-                if (doc != null) {
-                    doc.setOwnerId(userId);
-                    doc.setLastModifiedBy(userId);
-                    Document savedDoc = repo.save(doc);
-                    
-                    // Création du droit d'accès pour que l'utilisateur puisse voir son doc
-                    DocumentAcces acc = new DocumentAcces();
-                    acc.setDocumentId(savedDoc.getId());
-                    acc.setUserId(userId);
-                    acc.setAccessType("owner");
-                    accesRepository.save(acc);
-                    
-                    getLogger().info("Document créé avec succès pour l'utilisateur ID: " + userId);
-                } else {
-                    getLogger().warn("Validation reçue mais aucun document trouvé pour ce token.");
-                }
-            }
-        } catch (Exception e) {
-            getLogger().error("Erreur de parsing sur le message de Younes : " + e.getMessage());
+        if (userId == null) {
+            throw new RuntimeException("Accès refusé : Token invalide");
         }
-    }
-}
 
+        document.setOwnerId(userId);
+        document.setLastModifiedBy(userId);
+        Document savedDoc = repo.save(document); // Sauvegarde immédiate
+
+        // Création de l'accès propriétaire
+        DocumentAcces acc = new DocumentAcces();
+        acc.setDocumentId(savedDoc.getId());
+        acc.setUserId(userId);
+        acc.setAccessType("owner");
+        accesRepository.save(acc);
+
+        return savedDoc; // On renvoie le document complet
+    }
 
     public Optional<Document> getByIdDirect(Long id) {
         return repo.findById(id); //
