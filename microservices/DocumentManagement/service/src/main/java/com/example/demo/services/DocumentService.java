@@ -43,29 +43,43 @@ public class DocumentService extends Acteur { // Hérite du framework d'Ilan
     }
 
     @Override
-    public void traiterMessage(Message message) {
-        String contenu = message.getContenu();
-        if (contenu.startsWith("TOKEN_SUCCESS:")) {
-            Long userId = Long.parseLong(contenu.split(":")[1].trim());
-            
-            // On récupère le document correspondant au token
-            // Note: Idéalement le message devrait contenir le token pour être précis
-            for (String token : documentsEnAttente.keySet()) {
-                Document doc = documentsEnAttente.remove(token);
-                doc.setOwnerId(userId); //
-                doc.setLastModifiedBy(userId); //
-                Document savedDoc = repo.save(doc); //
+public void traiterMessage(Message message) {
+    String contenu = message.getContenu();
 
-                // Création automatique de l'accès pour le propriétaire
-                DocumentAcces access = new DocumentAcces();
-                access.setDocumentId(savedDoc.getId());
-                access.setUserId(userId);
-                access.setAccessType("owner");
-                accesRepository.save(access); //
-                break;
+    // Format attendu de Younes : "token:eyJhbGci...:123"
+    if (contenu.startsWith("token:")) {
+        try {
+            String[] parts = contenu.split(":");
+            
+            if (parts.length >= 3) {
+                String tokenRecu = parts[1].trim(); // Récupère le token
+                Long userId = Long.parseLong(parts[2].trim()); // Récupère l'ID
+
+                // On retrouve le BON document grâce au token
+                Document doc = documentsEnAttente.remove(tokenRecu);
+
+                if (doc != null) {
+                    doc.setOwnerId(userId);
+                    doc.setLastModifiedBy(userId);
+                    Document savedDoc = repo.save(doc);
+                    
+                    // Création du droit d'accès pour que l'utilisateur puisse voir son doc
+                    DocumentAcces acc = new DocumentAcces();
+                    acc.setDocumentId(savedDoc.getId());
+                    acc.setUserId(userId);
+                    acc.setAccessType("owner");
+                    accesRepository.save(acc);
+                    
+                    getLogger().info("Document créé avec succès pour l'utilisateur ID: " + userId);
+                } else {
+                    getLogger().warn("Validation reçue mais aucun document trouvé pour ce token.");
+                }
             }
+        } catch (Exception e) {
+            getLogger().error("Erreur de parsing sur le message de Younes : " + e.getMessage());
         }
     }
+}
 
     // --- 2. LOGIQUE DE GESTION CLASSIQUE (SYNCHRONE) ---
 
