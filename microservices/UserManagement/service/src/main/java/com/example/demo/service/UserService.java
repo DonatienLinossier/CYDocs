@@ -49,22 +49,27 @@ public class UserService extends Acteur {
             case "TOKEN_REQUEST" -> {
                 try {
                     String token = contenuBrut.substring(contenuBrut.indexOf(":") + 1).trim();
-                    Long userId = getUserIdFromToken(token);
-                    String contenuReponse = "token:" + token + ":" + userId;
                     
+                    Long userId = getUserIdFromToken(token);
+                    String contenuReponse = "TOKEN_VALIDATED:" + token + ":" + userId;
                     Message reponse = new Message("UserService", message.getEmetteur(), contenuReponse);
                     this.envoyerMessage(message.getEmetteur(), reponse);
                     
-                    getLogger().info("Réponse envoyée avec token et ID " + userId);
+                    getLogger().info("Validation réussie. Réponse envoyée : " + contenuReponse);
+                    
                 } catch (Exception e) {
-                    getLogger().error("Erreur TOKEN_REQUEST : " + e.getMessage());
-                    this.envoyerMessage(message.getEmetteur(), new Message("UserService", message.getEmetteur(), "TOKEN_INVALID"));
+                    getLogger().error("Token invalide ou erreur : " + e.getMessage());
+                    String tokenRate = contenuBrut.contains(":") ? contenuBrut.substring(contenuBrut.indexOf(":") + 1).trim() : "unknown";
+                    
+                    this.envoyerMessage(message.getEmetteur(), 
+                        new Message("UserService", message.getEmetteur(), "TOKEN_INVALID:" + tokenRate));
                 }
             }
 
             default -> getLogger().warn("Action inconnue : " + action);
         }
     }
+    
     public String login(String email, String rawPassword) {
 
         User existing = userRepository.findByEmail(email).orElse(null);
