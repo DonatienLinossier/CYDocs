@@ -191,3 +191,23 @@
   }
   .doc-status { text-align: left; margin-top: 8px; }
 }
+
+/* Rend la toolbar transparente et empêche les clics */
+.toolbar-disabled {
+  opacity: 0.5;
+  pointer-events: none; /* Désactive tous les clics sur la zone */
+  filter: grayscale(1);
+}
+
+/* Change l'apparence de l'éditeur quand on ne peut pas écrire */
+.editor-readonly {
+  background-color: #f9f9f9;
+  cursor: not-allowed;
+  border-color: #eee;
+}
+
+/* Style spécifique pour le badge de statut en lecture seule */
+.status-readonly {
+  color: #e67e22; /* Orange pour attirer l'attention */
+  font-weight: bold;
+}
