@@ -2,15 +2,21 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import "../styles/App.css";
+// 1. Importez la modale
+import ManageAccessModal from "./ManageAccessModal";
 
+import ShareModal from "./ShareModal";
 function App() {
   const [query, setQuery] = useState("");
+  const [sharingDoc, setSharingDoc] = useState(null);
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("cy_user");
     return stored ? JSON.parse(stored) : null;
   });
   const [docs, setDocs] = useState([]);
-
+  const currentUserId = localStorage.getItem("cy_user_id");
+// 2. Dans le composant App, ajoutez un état pour la modale
+const [selectedDocId, setSelectedDocId] = useState(null);
   useEffect(() => {
     // 1. Récupération sécurisée des identifiants de session
     const token = localStorage.getItem("cy_token");
@@ -58,21 +64,29 @@ function App() {
     window.location.reload();
   };
 
-  const shareDoc = (doc) => {
-    const raw = window.prompt(`Share "${doc.title}"\nEmail :`);
-    if (!raw) return;
-    const emails = raw.split(/[,;|\n]+/).map(s => s.trim()).filter(Boolean);
-    const shares = JSON.parse(localStorage.getItem("cy_shares") || "[]");
-    shares.push({
-      docId: doc.id,
-      title: doc.title,
-      emails,
-      date: new Date().toISOString(),
-    });
-    localStorage.setItem("cy_shares", JSON.stringify(shares));
-    window.alert(`Invitation sent.`);
+  const shareDoc = async (doc) => {
+    const email = window.prompt(`Share "${doc.title}" with email:`);
+    if (!email) return;
+  
+    // Demander le type d'accès
+    const type = window.confirm("Allow this person to EDIT the document? (Cancel = Read only)") 
+                 ? "write" : "read";
+  
+    const token = localStorage.getItem("cy_token");
+  
+    try {
+      await axios.post("http://localhost:8888/documents/share", {
+        documentId: doc.id,
+        targetEmail: email,
+        accessType: type // Envoyé au backend
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      window.alert(`Shared as ${type}`);
+    } catch (err) {
+      window.alert("Permission denied or user not found.");
+    }
   };
-
   return (
     <div className="app-root">
       <header className="site-header">
@@ -152,28 +166,54 @@ function App() {
             </div>
           ) : (
             <div className="docs-grid">
-              {filtered.length > 0 ? (
-                filtered.map((d) => (
-                  <article key={d.id} className="doc-card">
-                    <div className="doc-title">{d.title}</div>
-                    <div className="doc-author">By {d.author}</div>
-                    <div className="doc-actions">
-                      <Link className="btn btn-outline" to={`/document/${d.id}`}>
-                        Open
-                      </Link>
-                      <button className="btn btn-secondary" onClick={() => shareDoc(d)}>
-                        Share
-                      </button>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <p>No documents found.</p>
-              )}
-            </div>
+  {filtered.length > 0 ? (
+    filtered.map((d) => {
+      // Vérification : l'utilisateur est-il le propriétaire ?
+      const isOwner = d.ownerId?.toString() === currentUserId?.toString();
+
+      return (
+        <article key={d.id} className="doc-card">
+          <div className="doc-title">{d.title}</div>
+          <div className="doc-author">By {d.author}</div>
+          <div className="doc-actions">
+            <Link className="btn btn-outline" to={`/document/${d.id}`}>
+              Open
+            </Link>
+
+            {/* --- AFFICHAGE CONDITIONNEL --- */}
+            {isOwner && (
+              <>
+                <button className="btn btn-secondary" onClick={() => setSharingDoc(d)}>
+                  Share
+                </button>
+                <button className="btn btn-secondary" onClick={() => setSelectedDocId(d.id)}>
+                  Gérer
+                </button>
+              </>
+            )}
+            {/* ------------------------------- */}
+          </div>
+        </article>
+      );
+    })
+  ) : (
+    <p>No documents found.</p>
+  )}
+</div>
           )}
         </section>
 
+        <ManageAccessModal 
+          open={!!selectedDocId} 
+          onClose={() => setSelectedDocId(null)} 
+          docId={selectedDocId} 
+        />
+        <ShareModal 
+  open={!!sharingDoc} 
+  onClose={() => setSharingDoc(null)} 
+  docId={sharingDoc?.id}
+  docTitle={sharingDoc?.title}
+/>
         <footer className="site-footer">
           © {new Date().getFullYear()} CYDocs — Document sharing for teams
         </footer>

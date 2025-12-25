@@ -1,5 +1,5 @@
 package com.example.demo.models;
-
+import jakarta.persistence.Transient;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 @Entity
@@ -18,7 +18,12 @@ public class Document {
     private Long lastModifiedBy; // dernier utilisateur ayant modifié le doc
 
     private Long ownerId; // l’utilisateur qui a créé le doc
+    private String author; // AJOUT
+@Transient
+private String currentPermission; // "read" ou "write"
 
+public String getCurrentPermission() { return currentPermission; }
+public void setCurrentPermission(String currentPermission) { this.currentPermission = currentPermission; }
     public Document() {}
 
     @PrePersist @PreUpdate
@@ -61,6 +66,12 @@ public class Document {
     }
     public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
+    }
+    public String getAuthor() {
+        return author;
+    }
+    public void setAuthor(String author) {
+        this.author = author;
     }
 
 }

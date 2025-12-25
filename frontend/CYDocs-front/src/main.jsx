@@ -13,6 +13,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<App />} />
         <Route path="/connexion" element={<Connexion />} />
         <Route path="/document/:id" element={<Document />} />
+        <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+
       </Routes>
     </BrowserRouter>
   </StrictMode>,

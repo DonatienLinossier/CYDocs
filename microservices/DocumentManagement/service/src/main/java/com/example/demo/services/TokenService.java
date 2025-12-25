@@ -1,41 +1,69 @@
 package com.example.demo.services;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+import java.util.Map;
+import java.time.Instant;
 
 @Service
 public class TokenService {
 
-    // Cette clé DOIT être la même que celle utilisée par Younes pour signer les tokens
+    // IMPORTANT : Doit être identique à la clé du UserService
+    private static final String SECRET = "super_secret_key_256_bits_minimum_OMG"; 
+    private static final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${jwt.secret:super_secret_key_256_bits_minimum_OMG_123456}")
-    private String secretKey;
+    /**
+     * Recrée la signature HMAC-SHA256 pour comparer avec celle du token
+     */
+    private String sign(String data) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(SECRET.getBytes(), "HmacSHA256"));
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(mac.doFinal(data.getBytes()));
+    }
 
-    public Long validate(String token, String type) {
+    /**
+     * Valide le token de manière autonome
+     */
+    public Long validate(String token, String expectedType) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+            // 1. Découpage du token (Format: PayloadBase64.Signature)
+            String[] parts = token.split("\\.");
+            if (parts.length != 2) return null;
 
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+            String payload64 = parts[0];
+            String signatureProvided = parts[1];
 
-            // On vérifie si c'est bien un token de type LOGIN
-            if (!type.equals(claims.get("type"))) {
+            // 2. Vérification de l'intégrité (Signature)
+            if (!sign(payload64).equals(signatureProvided)) {
                 return null;
             }
 
-            // On récupère l'ID (Younes doit l'avoir mis dans le "subject" ou un claim "userId")
-            return Long.parseLong(claims.getSubject()); 
+            // 3. Décodage du JSON
+            String json = new String(Base64.getUrlDecoder().decode(payload64));
+            Map<String, Object> payload = mapper.readValue(json, Map.class);
+
+            // 4. Vérification du type (LOGIN ou RESET)
+            if (!payload.get("type").equals(expectedType)) {
+                return null;
+            }
+
+            // 5. Vérification de l'expiration
+            long exp = ((Number) payload.get("exp")).longValue();
+            if (Instant.now().getEpochSecond() > exp) {
+                return null;
+            }
+
+            // 6. Extraction de l'ID utilisateur
+            return ((Number) payload.get("userId")).longValue();
+
         } catch (Exception e) {
-            return null; // Token invalide, expiré ou mal signé
+            System.err.println("Erreur validation token: " + e.getMessage());
+            return null;
         }
     }
 }

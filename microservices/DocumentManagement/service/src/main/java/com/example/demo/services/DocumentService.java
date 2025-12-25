@@ -5,48 +5,84 @@ import com.example.demo.models.DocumentAcces;
 import com.example.demo.repositories.DocumentAccesRepository;
 import com.example.demo.repositories.DocumentRepository;
 import org.springframework.stereotype.Service;
-
+import com.example.demo.models.User; // Import de l'entité locale User
+import com.example.demo.repositories.UserRepository; // Import du repository
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import main.java.com.cyFramework.core.Acteur;
+import main.java.com.cyFramework.core.Message;
+
 @Service
-public class DocumentService {
+public class DocumentService extends Acteur {
 
     private final DocumentRepository repo;
     private final DocumentAccesRepository accesRepository;
     private final TokenService tokenService; // Injection ici
-
-    public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository, TokenService tokenService) {
+private final UserRepository userRepository; // AJOUT
+    public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository, TokenService tokenService, UserRepository userRepository) {
+        super("DocumentService");
         this.repo = repo;
         this.accesRepository = accesRepository;
         this.tokenService = tokenService;
+        this.userRepository = userRepository; // AJOUT
+        this.demarrer();
     }
 
+    @Override
+    public void recevoirMessage(Message message) {
+
+        // Logging systématique pour l'audit trail et la traçabilité des flux
+        this.getLogger().info(
+            "Message reçu | emetteur=" + message.getEmetteur() +
+            " | contenu=" + message.getContenu()
+        );
+
+        // Routage sélectif des actions basées sur le protocole applicatif
+        switch (message.getContenu()) {
+
+            case "PING" -> {
+                this.getLogger().info("Health check : PING reçu → OK");
+            }
+
+            default -> {
+                // Fallback pour les commandes non identifiées (Forward compatibility)
+                this.getLogger().warn("Action inconnue ou non implémentée : " + message.getContenu());
+            }
+        }
+    }
 
     public Document create(Document document, String token) {
-    // FORCE UN ID POUR TESTER LE RESTE
-    Long userId = 1L; 
+        // 1. Valider le token pour avoir l'ID
+        Long userId = tokenService.validate(token, "LOGIN");
+        if (userId == null) { 
+            throw new RuntimeException("Utilisateur non authentifié"); 
+        }
 
-    /* Commente ça temporairement
-    Long userId = tokenService.validate(token, "LOGIN");
-    if (userId == null) { throw new RuntimeException("..."); }
-    */
+        // 2. Récupérer le nom de l'utilisateur pour l'auteur
+        String authorName = userRepository.findById(userId)
+            .map(u -> u.getFirstName() + " " + u.getLastName())
+            .orElse("Anonymous"); // Fallback si non trouvé
 
-    document.setOwnerId(userId);
-    document.setLastModifiedBy(userId);
-    Document savedDoc = repo.save(document);
+        // 3. Remplir le document
+        document.setOwnerId(userId);
+        document.setLastModifiedBy(userId);
+        document.setAuthor(authorName); // On met le vrai nom ici !
 
-    DocumentAcces acc = new DocumentAcces();
-    acc.setDocumentId(savedDoc.getId());
-    acc.setUserId(userId);
-    acc.setAccessType("owner");
-    accesRepository.save(acc);
+        Document savedDoc = repo.save(document);
 
-    return savedDoc;
-}
+        // 4. Créer l'accès initial
+        DocumentAcces acc = new DocumentAcces();
+        acc.setDocumentId(savedDoc.getId());
+        acc.setUserId(userId);
+        acc.setAccessType("owner");
+        accesRepository.save(acc);
+
+        return savedDoc;
+    }
 
     public Optional<Document> getByIdDirect(Long id) {
         return repo.findById(id); //

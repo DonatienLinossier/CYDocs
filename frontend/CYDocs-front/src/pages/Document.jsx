@@ -2,15 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
-import axios from "axios"; // <--- added
+import axios from "axios";
 import "../styles/App.css";
 import "../styles/Document.css";
 
-// --- CONFIGURATION ---
-// const WEBSOCKET_URL = "http://localhost:8888/document/ws";
-// const API_URL = "http://localhost:8888/document/documents/get";
-// --- CONFIGURATION CORRIGÉE ---
-// Suppression du segment "/document" en trop pour correspondre au proxy Nginx
 const WEBSOCKET_URL = "http://localhost:8888/documents/ws"; 
 const API_URL = "http://localhost:8888/documents/get";
 
@@ -20,134 +15,96 @@ export default function Document() {
   const docId = isNew ? null : parseInt(id, 10);
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const wsClientRef = useRef(null); // FIX: Correction du crash "not iterable"
 
-  // --- STATE ---
-  const wsClientRef = useRef(null);
   const [sessionId] = useState(() => "user-" + Math.random().toString(36).substr(2, 9));
-  
-  // Start with NULL so we know we are loading
   const [doc, setDoc] = useState(null); 
   const [status, setStatus] = useState("Loading...");
-  
-  const lastSavedRef = useRef("");
+  const [canEdit, setCanEdit] = useState(false);
 
-  // --- 1. FETCH DOCUMENT (Load on Start) ---
+  const token = localStorage.getItem("cy_token");
+  const currentUserId = localStorage.getItem("cy_user_id");
+
+  // --- 1. FETCH DOCUMENT & PERMISSIONS ---
   useEffect(() => {
     if (isNew) {
-      const newDoc = {
-        id: null,
-        title: "Untitled Document",
-        author: "You",
-        content: ""
-      };
-      setDoc(newDoc);
+      setDoc({ title: "Untitled Document", author: "You", content: "" });
+      setCanEdit(true);
       setStatus("New (Unsaved)");
-      lastSavedRef.current = "";
       return;
     }
 
     setStatus("Loading document...");
     
-    fetch(`${API_URL}/${docId}`)
-      .then(async (res) => {
-        if (res.status === 404) throw new Error("404");
-        if (!res.ok) throw new Error("Network Error");
-        return res.json();
-      })
-      .then((data) => {
-        setDoc(data);
-        if (editorRef.current) {
-          editorRef.current.innerHTML = data.content;
-        }
-        lastSavedRef.current = data.content;
-        setStatus("Ready");
-      })
-      .catch((err) => {
-        console.error("Fetch error:", err);
-        if (err.message === "404") {
-          alert("Document not found!");
-          navigate("/"); 
-        } else {
-          setStatus("Error loading file");
-        }
-      });
-  }, [docId, isNew, navigate]);
+    axios.get(`${API_URL}/${docId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then((res) => {
+      const data = res.data;
+      setDoc(data);
+      
+      const isOwner = data.ownerId?.toString() === currentUserId?.toString();
+      setCanEdit(isOwner || data.currentPermission === "write"); 
 
-  // --- 2. WEBSOCKET CONNECTION ---
+      if (editorRef.current) {
+        editorRef.current.innerHTML = data.content;
+      }
+      setStatus(isOwner || data.currentPermission === "write" ? "Ready" : "Read Only");
+    })
+    .catch((err) => {
+      console.error("Fetch error:", err);
+      alert("Document not found or Access Denied");
+      navigate("/");
+    });
+  }, [docId, isNew, navigate, token, currentUserId]);
+
+  // --- 2. WEBSOCKET ---
   useEffect(() => {
     if (isNew || !doc) return; 
 
     const client = new Client({
       webSocketFactory: () => new SockJS(WEBSOCKET_URL),
       reconnectDelay: 5000,
-      debug: (str) => console.log(str),
-
-      onConnect: (frame) => {
-        setStatus("Connected (Live)");
-        console.log("Connected: " + frame);
-
+      onConnect: () => {
+        setStatus(canEdit ? "Connected (Live)" : "Connected (View Only)");
         client.subscribe(`/topic/doc/${doc.id}`, (msg) => {
           if (msg.body) {
-            try {
-              const payload = JSON.parse(msg.body);
-              if (payload.sender !== sessionId) {
-                setDoc((prev) => ({ ...prev, content: payload.content }));
-                if (editorRef.current) {
-                   if (document.activeElement !== editorRef.current) {
-                       editorRef.current.innerHTML = payload.content;
-                   } else {
-                       editorRef.current.innerHTML = payload.content;
-                   }
-                   lastSavedRef.current = payload.content;
-                }
-              }
-            } catch (e) {
-              console.error("WS Parse error", e);
+            const payload = JSON.parse(msg.body);
+            if (payload.sender !== sessionId && editorRef.current) {
+              editorRef.current.innerHTML = payload.content;
             }
           }
         });
       },
-      onStompError: (frame) => {
-        console.error("Broker error: " + frame.headers["message"]);
-        setStatus("Connection Error");
-      },
-      onWebSocketClose: () => {
-        setStatus("Disconnected");
-      }
     });
 
     client.activate();
     wsClientRef.current = client;
-
-    return () => {
-      if (wsClientRef.current) wsClientRef.current.deactivate();
-    };
-  }, [docId, isNew, sessionId, doc?.id]);
+    return () => client.deactivate();
+  }, [docId, isNew, sessionId, doc?.id, canEdit]);
 
   // --- ACTIONS ---
+  // Ajout de la fonction format manquante
   const format = (cmd, value = null) => {
+    if (!canEdit) return;
     document.execCommand(cmd, false, value);
     editorRef.current && editorRef.current.focus();
     handleInput();
   };
 
   const handleInput = () => {
-    if (editorRef.current) {
-      const content = editorRef.current.innerHTML;
-      setStatus("Connected (Live)");
+    if (!canEdit || !editorRef.current) return;
 
-      if (wsClientRef.current && wsClientRef.current.connected) {
-         const payload = { sender: sessionId, content: content };
-         wsClientRef.current.publish({
-            destination: `/app/doc/${docId}`,
-            body: JSON.stringify(payload)
-         });
-      }
+    const content = editorRef.current.innerHTML;
+    if (wsClientRef.current?.connected) {
+      wsClientRef.current.publish({
+        destination: `/app/doc/${docId}`,
+        body: JSON.stringify({ sender: sessionId, content: content })
+      });
     }
   };
 
   const download = () => {
-    // FIX: Ensure doc exists before accessing title
     if (!doc) return;
     const blob = new Blob([editorRef.current?.innerText || ""], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -162,61 +119,33 @@ export default function Document() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setStatus("Link copied");
-      setTimeout(() => setStatus(""), 1500);
-    } catch {
-      setStatus("Copy failed");
-    }
+      setTimeout(() => setStatus(canEdit ? "Ready" : "Read Only"), 1500);
+    } catch { setStatus("Copy failed"); }
   };
 
-  const save = useCallback(() => {
-    console.log("Saving...");
-    // Implement API Save here
-  }, [doc]);
-
-  // new handler: create document if new before navigating back
   const handleBack = async () => {
-    // 1. SECURITÉ : Si le document n'est pas chargé, on rentre juste à l'accueil
-    if (!doc) {
-      navigate("/");
-      return;
-    }
-  
-    const token = localStorage.getItem("cy_token");
-    const payload = {
-      title: doc.title || "Untitled Document",
-      author: doc.author || "Anonymous",
-      content: editorRef.current?.innerHTML || ""
-    };
-  
+    if (!doc) return navigate("/");
+    if (!canEdit) return navigate("/");
+
     try {
       setStatus("Saving...");
-  
-      if (isNew) {
-        // Création
-        await axios.post("http://localhost:8888/documents/create", payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } else {
-        // Mise à jour (Persistance des modifications WebSocket)
-        await axios.put(`http://localhost:8888/documents/update/${docId}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
-  
-      navigate("/", { replace: true });
-    } catch (err) {
-      console.error("Save failed", err);
-      setStatus("Error saving changes");
-      // En cas d'erreur, on permet quand même de revenir à l'accueil
-      setTimeout(() => navigate("/"), 2000);
-    }
+      const payload = {
+        title: doc.title,
+        content: editorRef.current?.innerHTML || ""
+      };
+
+      const url = isNew ? "http://localhost:8888/documents/create" : `http://localhost:8888/documents/update/${docId}`;
+      const method = isNew ? "post" : "put";
+
+      await axios[method](url, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      navigate("/");
+    } catch (err) { setStatus("Save failed"); }
   };
-  // --- RENDER ---
-  
-  // 🛑 THIS IS THE CRITICAL CHECK YOU WERE MISSING 🛑
-  if (!doc) {
-    return <div className="app-root"><main className="site-main"><h2>Loading Document...</h2></main></div>;
-  }
+
+  if (!doc) return <div className="app-root"><h2>Loading...</h2></div>;
 
   return (
     <div className="app-root">
@@ -224,7 +153,7 @@ export default function Document() {
         <div className="doc-header">
           <div className="doc-header-left">
             <button className="btn btn-outline" onClick={handleBack}>Back</button>
-            {isNew ? (
+            {isNew || (canEdit && doc.ownerId?.toString() === currentUserId?.toString()) ? (
               <input
                 className="doc-title-input"
                 value={doc.title}
@@ -233,36 +162,32 @@ export default function Document() {
             ) : (
               <strong className="doc-title">{doc.title}</strong>
             )}
-            <span className="doc-meta"> created by {doc.author}</span>
+            <span className="doc-meta"> by {doc.author}</span>
           </div>
-          <div className="doc-status">{status}</div>
+          <div className={`doc-status ${!canEdit ? "status-readonly" : ""}`}>{status}</div>
         </div>
 
-        <div className="doc-toolbar-center">
+        <div className={`doc-toolbar-center ${!canEdit ? "toolbar-disabled" : ""}`}>
           <div className="doc-toolbar">
-            <button type="button" className="btn" onClick={() => format("undo")} title="Undo">↶</button>
-            <button type="button" className="btn" onClick={() => format("redo")} title="Redo">↷</button>
-            <button type="button" className="btn" onClick={() => format("bold")} title="Bold"><b>B</b></button>
-            <button type="button" className="btn" onClick={() => format("italic")} title="Italic"><i>I</i></button>
-            <button type="button" className="btn" onClick={() => format("underline")} title="Underline"><u>U</u></button>
-            <button type="button" className="btn" onClick={() => format("strikeThrough")} title="Strike">S</button>
-            <button type="button" className="btn" onClick={() => format("formatBlock", "<H2>")} title="Heading">H2</button>
-            <button type="button" className="btn" onClick={() => format("formatBlock", "<PRE>")} title="Code">{"</>"}</button>
-            <button type="button" className="btn" onClick={() => format("insertUnorderedList")} title="Bullet list">•</button>
-            <button type="button" className="btn" onClick={() => format("insertOrderedList")} title="Numbered list">1.</button>
-            <button type="button" className="btn" onClick={() => format("justifyLeft")} title="Align left">⟵</button>
-            <button type="button" className="btn" onClick={() => format("justifyCenter")} title="Align center">⤒</button>
-            <button type="button" className="btn" onClick={() => format("justifyRight")} title="Align right">⟶</button>
-            <button type="button" className="btn btn-secondary" onClick={download} title="Download">Download</button>
-            <button type="button" className="btn btn-outline" onClick={copyLink} title="Copy link">Share</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("undo")}>↶</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("redo")}>↷</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("bold")}><b>B</b></button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("italic")}><i>I</i></button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("underline")}><u>U</u></button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("strikeThrough")}>S</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("formatBlock", "<h2>")}>H2</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("formatBlock", "<pre>")}>{"</>"}</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("insertUnorderedList")}>•</button>
+            <button type="button" className="btn" disabled={!canEdit} onClick={() => format("insertOrderedList")}>1.</button>
+            <button type="button" className="btn btn-secondary" onClick={download}>Download</button>
+            <button type="button" className="btn btn-outline" onClick={copyLink}>Share</button>
           </div>
         </div>
 
         <div
           ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          className="doc-editor"
+          contentEditable={canEdit} 
+          className={`doc-editor ${!canEdit ? "editor-readonly" : ""}`}
           onInput={handleInput}
           dangerouslySetInnerHTML={{ __html: doc.content }}
         />
