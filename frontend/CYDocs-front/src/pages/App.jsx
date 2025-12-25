@@ -10,63 +10,64 @@ function App() {
     return stored ? JSON.parse(stored) : null;
   });
   const [docs, setDocs] = useState([]);
-  useEffect(() => { // a revoir le backend ne demande pas le token FIO
-    if (!user) return;
 
+  useEffect(() => {
+    // 1. Récupération sécurisée des identifiants de session
+    const token = localStorage.getItem("cy_token");
+    
+    // On ne lance la requête que si l'utilisateur est connecté et possède un token
+    if (!user || !token) return;
+
+    // 2. Appel à l'endpoint sécurisé par Token (plus besoin d'ID dans l'URL)
     axios
-      .get(`http://localhost:8888/documents/user/1`)// a changer FIO ${user.id}
+      .get("http://localhost:8888/documents/my-documents", {
+        headers: { Authorization: `Bearer ${token}` } //
+      })
       .then((res) => {
         setDocs(res.data);
       })
       .catch((err) => {
         console.error("Erreur lors de la récupération des documents :", err);
+        // Si le token est expiré (401), on peut forcer la déconnexion ici
+        if (err.response?.status === 401) signOut();
       });
   }, [user]);
 
   const filtered = docs.filter(
-    (d) =>
-      d.title.toLowerCase().includes(query.toLowerCase()) ||
-      d.author.toLowerCase().includes(query.toLowerCase())
+    (d) => 
+      d && // Vérifie que le document 'd' n'est pas null
+      (
+        (d.title?.toLowerCase().includes(query.toLowerCase())) ||
+        (d.author?.toLowerCase().includes(query.toLowerCase()))
+      )
   );
 
-const signOut = async () => {
-  try {
-    const token = localStorage.getItem("cy_token");
-
-    if (token) {
-      
-      //Version pour tester avec la gateway
-      await axios.post(`http://localhost:8888/user/api/users/logout?token=${token}`);
+  const signOut = async () => {
+    try {
+      const token = localStorage.getItem("cy_token");
+      if (token) {
+        await axios.post(`http://localhost:8888/user/api/users/logout?token=${token}`);
+      }
+    } catch (err) {
+      console.error("Erreur lors de la déconnexion :", err);
     }
-  } catch (err) {
-    console.error("Erreur lors de la déconnexion :", err);
-  }
+    localStorage.removeItem("cy_user");
+    localStorage.removeItem("cy_token");
+    localStorage.removeItem("cy_user_id");
+    setUser(null);
+    window.location.reload();
+  };
 
-  // Quoi qu'il arrive, on nettoie le front
-  localStorage.removeItem("cy_user");
-  localStorage.removeItem("cy_token");
-  setUser(null);
-  window.location.reload();
-};
-
-
-  // add this helper inside the App component
   const shareDoc = (doc) => {
     const raw = window.prompt(`Share "${doc.title}"\nEmail :`);
     if (!raw) return;
     const emails = raw.split(/[,;|\n]+/).map(s => s.trim()).filter(Boolean);
-    const invalid = emails.filter(e => !/\S+@\S+\.\S+/.test(e));
-    if (invalid.length) {
-      window.alert("Invalid email(s): " + invalid.join(", "));
-      return;
-    }
     const shares = JSON.parse(localStorage.getItem("cy_shares") || "[]");
     shares.push({
       docId: doc.id,
       title: doc.title,
       emails,
       date: new Date().toISOString(),
-      link: `${window.location.origin}/documents/${doc.id}`
     });
     localStorage.setItem("cy_shares", JSON.stringify(shares));
     window.alert(`Invitation sent.`);
@@ -107,7 +108,6 @@ const signOut = async () => {
         <section className="hero">
           <div className="hero-content">
             <h1 className="hero-title">Work on the same document together</h1>
-
             <div className="hero-actions">
               <input
                 className="search-input"
@@ -118,7 +118,6 @@ const signOut = async () => {
                 disabled={!user}
               />
             </div>
-
             <div className="hero-quick">
               {user ? (
                 <Link to="/document/new" className="btn btn-outline">
@@ -129,52 +128,48 @@ const signOut = async () => {
                   Create a document
                 </button>
               )}
-              
             </div>
           </div>
-
           <aside className="sidebar">
             <div className="sidebar-header">Welcome back</div>
             <div className="sidebar-title">Recent activity</div>
             <ul className="activity-list">
               {user ? (
                 <>
-                  <li className="activity-item">Alice updated "Project Plan - Q4"</li>
-                  <li className="activity-item">Bob commented on "Design Guidelines"</li>
-                  <li className="activity-item">Carol uploaded "User Onboarding"</li>
+                  <li className="activity-item">Alice updated "Project Plan"</li>
+                  <li className="activity-item">Bob commented on "Guidelines"</li>
                 </>
-              ) : null}
+              ) : <li className="activity-item">Please log in</li>}
             </ul>
           </aside>
         </section>
 
         <section className="suggested">
-          <h2>Suggested documents</h2>
-
+          <h2>Your documents</h2>
           {!user ? (
             <div className="auth-notice">
               <p>Please sign in to view documents and access content.</p>
             </div>
           ) : (
             <div className="docs-grid">
-              {filtered.map((d) => (
-                <article key={d.id} className="doc-card">
-                  <div className="doc-title">{d.title}</div>
-                  <div className="doc-excerpt">{d.excerpt}</div>
-                  <div className="doc-author">By {d.author}</div>
-                  <div className="doc-actions">
-                    <Link className="btn btn-outline" to={`/document/${d.id}`}>
-                      Open
-                    </Link>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => shareDoc(d)}
-                    >
-                      Share
-                    </button>
-                  </div>
-                </article>
-              ))}
+              {filtered.length > 0 ? (
+                filtered.map((d) => (
+                  <article key={d.id} className="doc-card">
+                    <div className="doc-title">{d.title}</div>
+                    <div className="doc-author">By {d.author}</div>
+                    <div className="doc-actions">
+                      <Link className="btn btn-outline" to={`/document/${d.id}`}>
+                        Open
+                      </Link>
+                      <button className="btn btn-secondary" onClick={() => shareDoc(d)}>
+                        Share
+                      </button>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <p>No documents found.</p>
+              )}
             </div>
           )}
         </section>

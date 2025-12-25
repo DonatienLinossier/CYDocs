@@ -57,8 +57,10 @@ export default function Connexion() {
       
       
       
-      const user = { name: derivedName, email };
+      const user = { name: derivedName, email, id: responceLogin.data.id };
       localStorage.setItem("cy_user", JSON.stringify(user));
+      localStorage.setItem("cy_user_email", email);
+      localStorage.setItem("cy_user_id", responceLogin.data.id);
       localStorage.setItem("cy_token", responceLogin.data.token);
       navigate("/", { replace: true });
       window.location.reload();

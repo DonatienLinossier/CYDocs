@@ -175,37 +175,42 @@ export default function Document() {
 
   // new handler: create document if new before navigating back
   const handleBack = async () => {
-    if (isNew && doc) {
-      const payload = {
-        title: doc.title || "Untitled Document",
-        author: doc.author || "You",
-        content: editorRef.current?.innerHTML ?? doc.content ?? ""
-      };
+    // 1. SECURITÉ : Si le document n'est pas chargé, on rentre juste à l'accueil
+    if (!doc) {
+      navigate("/");
+      return;
+    }
   
-      try {
-        setStatus("Creating document...");
-        const token = localStorage.getItem("cy_token");
-        
-        // Correction : URL simplifiée et arguments dans le bon ordre
-        const resp = await axios.post(
-          "http://localhost:8888/documents/create", // URL Gateway
-          payload,                                   // Data (2ème argument)
-          { headers: { Authorization: `Bearer ${token}` } } // Config (3ème argument)
-        );
+    const token = localStorage.getItem("cy_token");
+    const payload = {
+      title: doc.title || "Untitled Document",
+      author: doc.author || "Anonymous",
+      content: editorRef.current?.innerHTML || ""
+    };
   
-        if (resp && resp.data) {
-          console.log("Document created with ID:", resp.data.id);
-          navigate("/", { replace: true });
-        }
-      } catch (err) {
-        console.error("Create failed", err.response?.data || err.message);
-        setStatus("Create failed");
+    try {
+      setStatus("Saving...");
+  
+      if (isNew) {
+        // Création
+        await axios.post("http://localhost:8888/documents/create", payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Mise à jour (Persistance des modifications WebSocket)
+        await axios.put(`http://localhost:8888/documents/update/${docId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
       }
-    } else {
-      navigate(-1);
+  
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("Save failed", err);
+      setStatus("Error saving changes");
+      // En cas d'erreur, on permet quand même de revenir à l'accueil
+      setTimeout(() => navigate("/"), 2000);
     }
   };
-
   // --- RENDER ---
   
   // 🛑 THIS IS THE CRITICAL CHECK YOU WERE MISSING 🛑
