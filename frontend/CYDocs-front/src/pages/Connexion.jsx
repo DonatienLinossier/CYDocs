@@ -48,6 +48,7 @@ export default function Connexion() {
       };
 
       localStorage.setItem("cy_user", JSON.stringify(user));
+      localStorage.setItem("cy_user_id", responceLogin.data.id);
       localStorage.setItem("cy_token", responceLogin.data.token);
       
       navigate("/", { replace: true });
