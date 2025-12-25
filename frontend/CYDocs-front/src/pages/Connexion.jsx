@@ -35,7 +35,7 @@ export default function Connexion() {
         
         
         // Version pour tester avec la gateway
-        const response = await axios.post("http://127.0.0.1:8080/user/api/users/register", {
+        const response = await axios.post("http://localhost:8888/user/api/users/register", {
           
           
           email,
@@ -48,7 +48,7 @@ export default function Connexion() {
 
         
         //Version pour tester avec la gateway
-        const responceLogin = await axios.post("http://127.0.0.1:8080/user/api/users/login", {
+        const responceLogin = await axios.post("http://localhost:8888/user/api/users/login", {
           email,
           password,
         });
@@ -57,8 +57,10 @@ export default function Connexion() {
       
       
       
-      const user = { name: derivedName, email };
+      const user = { name: derivedName, email, id: responceLogin.data.id };
       localStorage.setItem("cy_user", JSON.stringify(user));
+      localStorage.setItem("cy_user_email", email);
+      localStorage.setItem("cy_user_id", responceLogin.data.id);
       localStorage.setItem("cy_token", responceLogin.data.token);
       navigate("/", { replace: true });
       window.location.reload();

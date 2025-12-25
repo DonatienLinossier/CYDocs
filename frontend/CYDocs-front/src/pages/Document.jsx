@@ -7,8 +7,12 @@ import "../styles/App.css";
 import "../styles/Document.css";
 
 // --- CONFIGURATION ---
-const WEBSOCKET_URL = "http://localhost:8080/document/ws";
-const API_URL = "http://localhost:8080/document/documents/get";
+// const WEBSOCKET_URL = "http://localhost:8888/document/ws";
+// const API_URL = "http://localhost:8888/document/documents/get";
+// --- CONFIGURATION CORRIGÉE ---
+// Suppression du segment "/document" en trop pour correspondre au proxy Nginx
+const WEBSOCKET_URL = "http://localhost:8888/documents/ws"; 
+const API_URL = "http://localhost:8888/documents/get";
 
 export default function Document() {
   const { id } = useParams();
@@ -171,41 +175,42 @@ export default function Document() {
 
   // new handler: create document if new before navigating back
   const handleBack = async () => {
-    if (isNew && doc) {
-      console.log("Creating new document...");
-      const payload = {
-        title: doc.title || "Untitled Document",
-        author: doc.author || "You",
-        content: editorRef.current?.innerHTML ?? doc.content ?? ""
-      };
-
-      try {
-        setStatus("Creating document...");
-        const token = localStorage.getItem("cy_token");
-        const resp = await axios.post(
-          "http://127.0.0.1:8080/api/documents/document/create", // a revoir cote backend
-          
-          { headers: { Authorization: `Bearer ${token}` } },
-          payload
-        );
-        // update local state with created doc if server returns it
-        if (resp && resp.data) {
-          console.log("Document created with ID:", resp.data.id);
-          setDoc(resp.data);
-          lastSavedRef.current = resp.data.content ?? payload.content;
-          setStatus("Created");
-        } else {
-          setStatus("Created (no body)");
-        }
-      } catch (err) {
-        console.error("Create failed", err);
-        setStatus("Create failed");
-        // continue navigation even on failure (optional)
-      }
+    // 1. SECURITÉ : Si le document n'est pas chargé, on rentre juste à l'accueil
+    if (!doc) {
+      navigate("/");
+      return;
     }
-    navigate(-1);
+  
+    const token = localStorage.getItem("cy_token");
+    const payload = {
+      title: doc.title || "Untitled Document",
+      author: doc.author || "Anonymous",
+      content: editorRef.current?.innerHTML || ""
+    };
+  
+    try {
+      setStatus("Saving...");
+  
+      if (isNew) {
+        // Création
+        await axios.post("http://localhost:8888/documents/create", payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Mise à jour (Persistance des modifications WebSocket)
+        await axios.put(`http://localhost:8888/documents/update/${docId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+  
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("Save failed", err);
+      setStatus("Error saving changes");
+      // En cas d'erreur, on permet quand même de revenir à l'accueil
+      setTimeout(() => navigate("/"), 2000);
+    }
   };
-
   // --- RENDER ---
   
   // 🛑 THIS IS THE CRITICAL CHECK YOU WERE MISSING 🛑

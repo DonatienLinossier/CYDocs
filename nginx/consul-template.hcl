@@ -5,5 +5,6 @@ consul {
 template {
   source      = "/etc/consul-template/nginx.conf.tpl"
   destination = "/etc/nginx/conf.d/default.conf"
-  command     = "nginx -t && nginx -s reload || nginx"
+  # Commande simplifiée : si nginx tourne on reload, sinon on le lance
+  command     = "pgrep nginx > /dev/null && nginx -s reload || nginx"
 }
