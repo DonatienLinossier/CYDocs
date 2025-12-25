@@ -2,15 +2,20 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import "../styles/App.css";
+// 1. Importez la modale
+import ManageAccessModal from "./ManageAccessModal";
 
+import ShareModal from "./ShareModal";
 function App() {
   const [query, setQuery] = useState("");
+  const [sharingDoc, setSharingDoc] = useState(null);
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("cy_user");
     return stored ? JSON.parse(stored) : null;
   });
   const [docs, setDocs] = useState([]);
-
+// 2. Dans le composant App, ajoutez un état pour la modale
+const [selectedDocId, setSelectedDocId] = useState(null);
   useEffect(() => {
     // 1. Récupération sécurisée des identifiants de session
     const token = localStorage.getItem("cy_token");
@@ -62,20 +67,23 @@ function App() {
     const email = window.prompt(`Share "${doc.title}" with email:`);
     if (!email) return;
   
+    // Demander le type d'accès
+    const type = window.confirm("Allow this person to EDIT the document? (Cancel = Read only)") 
+                 ? "write" : "read";
+  
     const token = localStorage.getItem("cy_token");
   
     try {
       await axios.post("http://localhost:8888/documents/share", {
         documentId: doc.id,
-        targetEmail: email // Le nom doit correspondre EXACTEMENT au DTO Java
+        targetEmail: email,
+        accessType: type // Envoyé au backend
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      window.alert("Shared successfully!");
+      window.alert(`Shared as ${type}`);
     } catch (err) {
-      console.error("Share error", err);
-      window.alert("Could not share document.");
+      window.alert("Permission denied or user not found.");
     }
   };
   return (
@@ -166,8 +174,11 @@ function App() {
                       <Link className="btn btn-outline" to={`/document/${d.id}`}>
                         Open
                       </Link>
-                      <button className="btn btn-secondary" onClick={() => shareDoc(d)}>
-                        Share
+                      <button className="btn btn-secondary" onClick={() => setSharingDoc(d)}>
+  Share
+</button>
+                      <button className="btn btn-secondary" onClick={() => setSelectedDocId(d.id)}>
+                        Gérer
                       </button>
                     </div>
                   </article>
@@ -179,6 +190,17 @@ function App() {
           )}
         </section>
 
+        <ManageAccessModal 
+          open={!!selectedDocId} 
+          onClose={() => setSelectedDocId(null)} 
+          docId={selectedDocId} 
+        />
+        <ShareModal 
+  open={!!sharingDoc} 
+  onClose={() => setSharingDoc(null)} 
+  docId={sharingDoc?.id}
+  docTitle={sharingDoc?.title}
+/>
         <footer className="site-footer">
           © {new Date().getFullYear()} CYDocs — Document sharing for teams
         </footer>
