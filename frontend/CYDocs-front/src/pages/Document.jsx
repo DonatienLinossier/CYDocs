@@ -7,8 +7,12 @@ import "../styles/App.css";
 import "../styles/Document.css";
 
 // --- CONFIGURATION ---
-const WEBSOCKET_URL = "http://localhost:8080/document/ws";
-const API_URL = "http://localhost:8080/document/documents/get";
+// const WEBSOCKET_URL = "http://localhost:8888/document/ws";
+// const API_URL = "http://localhost:8888/document/documents/get";
+// --- CONFIGURATION CORRIGÉE ---
+// Suppression du segment "/document" en trop pour correspondre au proxy Nginx
+const WEBSOCKET_URL = "http://localhost:8888/documents/ws"; 
+const API_URL = "http://localhost:8888/documents/get";
 
 export default function Document() {
   const { id } = useParams();
@@ -172,38 +176,34 @@ export default function Document() {
   // new handler: create document if new before navigating back
   const handleBack = async () => {
     if (isNew && doc) {
-      console.log("Creating new document...");
       const payload = {
         title: doc.title || "Untitled Document",
         author: doc.author || "You",
         content: editorRef.current?.innerHTML ?? doc.content ?? ""
       };
-
+  
       try {
         setStatus("Creating document...");
         const token = localStorage.getItem("cy_token");
+        
+        // Correction : URL simplifiée et arguments dans le bon ordre
         const resp = await axios.post(
-          "http://127.0.0.1:8080/document/api/documents/create",
-          
-          { headers: { Authorization: `Bearer ${token}` } },
-          payload
+          "http://localhost:8888/documents/create", // URL Gateway
+          payload,                                   // Data (2ème argument)
+          { headers: { Authorization: `Bearer ${token}` } } // Config (3ème argument)
         );
-        // update local state with created doc if server returns it
+  
         if (resp && resp.data) {
           console.log("Document created with ID:", resp.data.id);
-          setDoc(resp.data);
-          lastSavedRef.current = resp.data.content ?? payload.content;
-          setStatus("Created");
-        } else {
-          setStatus("Created (no body)");
+          navigate("/", { replace: true });
         }
       } catch (err) {
-        console.error("Create failed", err);
+        console.error("Create failed", err.response?.data || err.message);
         setStatus("Create failed");
-        // continue navigation even on failure (optional)
       }
+    } else {
+      navigate(-1);
     }
-    navigate(-1);
   };
 
   // --- RENDER ---

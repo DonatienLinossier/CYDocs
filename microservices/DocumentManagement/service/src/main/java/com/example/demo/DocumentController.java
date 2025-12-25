@@ -27,15 +27,20 @@ public class DocumentController {
         this.service = service;
     }
 
-    // CREATE test
+    // CREATE
     @PostMapping("/create")
-    public ResponseEntity<Document> create(@RequestBody Document document) {
-        if (document.getId() != null && service.getById(document.getId()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409
+    public ResponseEntity<Document> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
+        // 1. Extraire le token du header
+        String token = authHeader.replace("Bearer ", "");
+
+        // 2. Vérifier si l'ID existe déjà (protection contre doublons)
+        if (document.getId() != null && service.getByIdDirect(document.getId()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build(); 
         }
 
-        Document created = service.create(document);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created); // 201
+        // 3. Appeler le service avec le TOKEN
+        Document created = service.create(document, token);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created); 
     }
 
     // UPDATE
@@ -84,4 +89,17 @@ public class DocumentController {
         // 202 Accepted est parfait pour signaler que le serveur a bien reçu la requête
         return ResponseEntity.status(HttpStatus.ACCEPTED).body("Test validé...");
     }
+    // Dans DocumentController.java
+
+// Récupérer TOUS les documents de l'utilisateur connecté via son TOKEN
+@GetMapping("/my-documents")
+public ResponseEntity<List<Document>> getMyDocuments(@RequestHeader("Authorization") String authHeader) {
+    // 1. Extraction du token
+    String token = authHeader.replace("Bearer ", "");
+
+    // 2. Appel du service qui va décoder le token pour trouver l'utilisateur
+    List<Document> docs = service.getUserDocumentsFromToken(token);
+    
+    return ResponseEntity.ok(docs);
+}
 }

@@ -13,7 +13,8 @@ import java.nio.charset.StandardCharsets;
 public class TokenService {
 
     // Cette clé DOIT être la même que celle utilisée par Younes pour signer les tokens
-    @Value("${super_secret_key_256_bits_minimum_OMG}")
+
+    @Value("${jwt.secret:super_secret_key_256_bits_minimum_OMG_123456}")
     private String secretKey;
 
     public Long validate(String token, String type) {

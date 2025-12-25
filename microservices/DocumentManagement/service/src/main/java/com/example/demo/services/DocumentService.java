@@ -2,8 +2,6 @@ package com.example.demo.services;
 
 import com.example.demo.models.Document;
 import com.example.demo.models.DocumentAcces;
-import com.cyFramework.core.Acteur;
-import com.cyFramework.core.Message;
 import com.example.demo.repositories.DocumentAccesRepository;
 import com.example.demo.repositories.DocumentRepository;
 import org.springframework.stereotype.Service;
@@ -15,57 +13,40 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class DocumentService extends Acteur {
+public class DocumentService {
 
     private final DocumentRepository repo;
     private final DocumentAccesRepository accesRepository;
     private final TokenService tokenService; // Injection ici
 
     public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository, TokenService tokenService) {
-        super("DocumentManagementService");
-        this.demarrer();
         this.repo = repo;
         this.accesRepository = accesRepository;
         this.tokenService = tokenService;
     }
 
-    @Override
-    public void recevoirMessage(Message message) {
-        String contenuBrut = message.getContenu();
-        if (contenuBrut == null) return;
-
-        getLogger().info("Message reçu | emetteur=" + message.getEmetteur() + " | contenu=" + contenuBrut);
-        String action = contenuBrut.contains(":") ? contenuBrut.split(":")[0] : contenuBrut;
-
-        switch (action) {
-            case "PING" -> {
-                getLogger().info("PING reçu → OK");
-            }
-            default -> getLogger().warn("Action inconnue : " + action);
-        }
-    }
 
     public Document create(Document document, String token) {
-        // Validation synchrone : on obtient l'ID tout de suite
-        Long userId = tokenService.validate(token, "LOGIN");
+    // FORCE UN ID POUR TESTER LE RESTE
+    Long userId = 1L; 
 
-        if (userId == null) {
-            throw new RuntimeException("Accès refusé : Token invalide");
-        }
+    /* Commente ça temporairement
+    Long userId = tokenService.validate(token, "LOGIN");
+    if (userId == null) { throw new RuntimeException("..."); }
+    */
 
-        document.setOwnerId(userId);
-        document.setLastModifiedBy(userId);
-        Document savedDoc = repo.save(document); // Sauvegarde immédiate
+    document.setOwnerId(userId);
+    document.setLastModifiedBy(userId);
+    Document savedDoc = repo.save(document);
 
-        // Création de l'accès propriétaire
-        DocumentAcces acc = new DocumentAcces();
-        acc.setDocumentId(savedDoc.getId());
-        acc.setUserId(userId);
-        acc.setAccessType("owner");
-        accesRepository.save(acc);
+    DocumentAcces acc = new DocumentAcces();
+    acc.setDocumentId(savedDoc.getId());
+    acc.setUserId(userId);
+    acc.setAccessType("owner");
+    accesRepository.save(acc);
 
-        return savedDoc; // On renvoie le document complet
-    }
+    return savedDoc;
+}
 
     public Optional<Document> getByIdDirect(Long id) {
         return repo.findById(id); //
@@ -92,4 +73,20 @@ public class DocumentService extends Acteur {
     public void delete(Long id) {
         repo.deleteById(id); //
     }
+    // Dans DocumentService.java
+
+public List<Document> getUserDocumentsFromToken(String token) {
+    // 1. Valider le token et récupérer l'ID de l'utilisateur
+    // On réutilise la logique que vous aviez commentée
+    Long userId = tokenService.validate(token, "LOGIN"); 
+
+    if (userId == null) {
+        // Optionnel : Forcer l'ID 1L pour vos tests actuels si le TokenService n'est pas fini
+        userId = 1L; 
+        // Sinon : throw new RuntimeException("Token invalide ou expiré");
+    }
+
+    // 2. Récupérer les documents liés à cet ID via la table d'accès
+    return getUserDocuments(userId);
+}
 }

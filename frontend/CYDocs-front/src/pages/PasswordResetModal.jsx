@@ -76,7 +76,7 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
       
       
      const response = await axios.post(
-        "http://127.0.0.1:8080/user/api/users/forgot-password",
+        "http://localhost:8888/user/api/users/forgot-password",
         null, // body vide
         { params: { email } }
       );
@@ -108,7 +108,7 @@ export default function PasswordResetModal({ open, onClose, prefillEmail = "", o
 
     try {
     const response = await axios.post(
-      "http://127.0.0.1:8080/user/api/users/reset-password",
+      "http://localhost:8888/user/api/users/reset-password",
       null, // body vide
       { params: { token, newPassword: p } }
     );

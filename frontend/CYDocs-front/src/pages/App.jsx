@@ -14,7 +14,7 @@ function App() {
     if (!user) return;
 
     axios
-      .get(`http://localhost:8080/document/api/documents/user/2`)// a changer FIO ${user.id}
+      .get(`http://localhost:8888/documents/user/1`)// a changer FIO ${user.id}
       .then((res) => {
         setDocs(res.data);
       })
@@ -36,7 +36,7 @@ const signOut = async () => {
     if (token) {
       
       //Version pour tester avec la gateway
-      await axios.post(`http://127.0.0.1:8080/user/api/users/logout?token=${token}`);
+      await axios.post(`http://localhost:8888/user/api/users/logout?token=${token}`);
     }
   } catch (err) {
     console.error("Erreur lors de la déconnexion :", err);
@@ -66,7 +66,7 @@ const signOut = async () => {
       title: doc.title,
       emails,
       date: new Date().toISOString(),
-      link: `${window.location.origin}/document/${doc.id}`
+      link: `${window.location.origin}/documents/${doc.id}`
     });
     localStorage.setItem("cy_shares", JSON.stringify(shares));
     window.alert(`Invitation sent.`);
