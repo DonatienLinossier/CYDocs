@@ -58,21 +58,26 @@ function App() {
     window.location.reload();
   };
 
-  const shareDoc = (doc) => {
-    const raw = window.prompt(`Share "${doc.title}"\nEmail :`);
-    if (!raw) return;
-    const emails = raw.split(/[,;|\n]+/).map(s => s.trim()).filter(Boolean);
-    const shares = JSON.parse(localStorage.getItem("cy_shares") || "[]");
-    shares.push({
-      docId: doc.id,
-      title: doc.title,
-      emails,
-      date: new Date().toISOString(),
-    });
-    localStorage.setItem("cy_shares", JSON.stringify(shares));
-    window.alert(`Invitation sent.`);
+  const shareDoc = async (doc) => {
+    const email = window.prompt(`Share "${doc.title}" with email:`);
+    if (!email) return;
+  
+    const token = localStorage.getItem("cy_token");
+  
+    try {
+      await axios.post("http://localhost:8888/documents/share", {
+        documentId: doc.id,
+        targetEmail: email // Le nom doit correspondre EXACTEMENT au DTO Java
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      window.alert("Shared successfully!");
+    } catch (err) {
+      console.error("Share error", err);
+      window.alert("Could not share document.");
+    }
   };
-
   return (
     <div className="app-root">
       <header className="site-header">

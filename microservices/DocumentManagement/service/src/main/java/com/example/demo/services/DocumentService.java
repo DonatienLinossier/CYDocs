@@ -12,28 +12,51 @@ import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import main.java.com.cyFramework.core.Acteur;
+import main.java.com.cyFramework.core.Message;
+
 @Service
-public class DocumentService {
+public class DocumentService extends Acteur {
 
     private final DocumentRepository repo;
     private final DocumentAccesRepository accesRepository;
     private final TokenService tokenService; // Injection ici
 
     public DocumentService(DocumentRepository repo, DocumentAccesRepository accesRepository, TokenService tokenService) {
+        super("DocumentService");
         this.repo = repo;
         this.accesRepository = accesRepository;
         this.tokenService = tokenService;
+        this.demarrer();
     }
 
+    @Override
+    public void recevoirMessage(Message message) {
+
+        // Logging systématique pour l'audit trail et la traçabilité des flux
+        this.getLogger().info(
+            "Message reçu | emetteur=" + message.getEmetteur() +
+            " | contenu=" + message.getContenu()
+        );
+
+        // Routage sélectif des actions basées sur le protocole applicatif
+        switch (message.getContenu()) {
+
+            case "PING" -> {
+                this.getLogger().info("Health check : PING reçu → OK");
+            }
+
+            default -> {
+                // Fallback pour les commandes non identifiées (Forward compatibility)
+                this.getLogger().warn("Action inconnue ou non implémentée : " + message.getContenu());
+            }
+        }
+    }
 
     public Document create(Document document, String token) {
     // FORCE UN ID POUR TESTER LE RESTE
-    Long userId = 1L; 
-
-    /* Commente ça temporairement
     Long userId = tokenService.validate(token, "LOGIN");
     if (userId == null) { throw new RuntimeException("..."); }
-    */
 
     document.setOwnerId(userId);
     document.setLastModifiedBy(userId);

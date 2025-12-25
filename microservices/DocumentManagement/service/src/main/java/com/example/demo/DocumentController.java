@@ -16,17 +16,39 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.models.Document;
 import com.example.demo.services.DocumentService;
-
+import com.example.demo.services.DocumentAccesService;
 @RestController
 @RequestMapping("/documents")
 public class DocumentController {
 
     private final DocumentService service;
+    private final DocumentAccesService accessService;
 
-    public DocumentController(DocumentService service) {
+    // Mise à jour du constructeur pour injecter les DEUX services
+    public DocumentController(DocumentService service, DocumentAccesService accessService) {
         this.service = service;
+        this.accessService = accessService;
     }
 
+    @PostMapping("/share")
+    public ResponseEntity<?> share(@RequestBody ShareRequest request) {
+        // Cette ligne fonctionnera maintenant car accessService est initialisé
+        accessService.shareByEmail(request.getDocumentId(), request.getTargetEmail());
+        return ResponseEntity.ok().build();
+    }
+/**
+ * Le DTO doit correspondre à ce que le Frontend envoie (l'email)
+ */
+public static class ShareRequest {
+    private Long documentId;
+    private String targetEmail; // Changé de Long à String
+
+    public Long getDocumentId() { return documentId; }
+    public void setDocumentId(Long documentId) { this.documentId = documentId; }
+    
+    public String getTargetEmail() { return targetEmail; }
+    public void setTargetEmail(String targetEmail) { this.targetEmail = targetEmail; }
+}
     // CREATE
     @PostMapping("/create")
     public ResponseEntity<Document> create(@RequestHeader("Authorization") String authHeader, @RequestBody Document document) {
