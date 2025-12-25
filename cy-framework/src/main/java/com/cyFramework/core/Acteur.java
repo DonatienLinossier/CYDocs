@@ -10,6 +10,7 @@ public abstract class Acteur {
     private final String nom;
     private final Logger logger;
     private boolean actif = false;
+    private boolean freeze = false;
     private final Queue<Message> boiteMessages = new LinkedList<>();
 
     protected Acteur(String nom) {
@@ -52,6 +53,11 @@ public abstract class Acteur {
 
     /** Appelé périodiquement : traite la file FIFO */
     public void tick() {
+
+        if (!actif || freeze) {
+            return;
+        }
+
         Message msg = null;
 
         synchronized (boiteMessages) {
@@ -61,8 +67,29 @@ public abstract class Acteur {
         }
 
         if (msg != null) {
-            recevoirMessage(msg); // logique existante
+            recevoirMessage(msg);
         }
+    }
+
+
+    public void freezeActeur(boolean freeze) {
+        this.freeze = freeze;
+
+        if (freeze) {
+            logger.info("Acteur gelé (freeze).");
+        } else {
+            logger.info("Acteur réactivé (unfreeze).");
+        }
+    }
+    
+    /**
+     * Vide la file de messages sans les traiter
+     */
+    public void flush() {
+        synchronized (boiteMessages) {
+            boiteMessages.clear();
+        }
+        logger.info("Boîte de messages vidée (flush).");
     }
 
     public String getNom() { return nom; }
@@ -79,4 +106,3 @@ public abstract class Acteur {
                 '}';
     }
 }
-
