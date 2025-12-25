@@ -10,10 +10,11 @@ import com.example.demo.services.DocumentService;
 import com.example.demo.services.DocumentAccesService;
 // --- IMPORTATION ESSENTIELLE ---
 import com.example.demo.services.TokenService; 
-
+import main.java.com.cyFramework.core.Acteur;
+import main.java.com.cyFramework.core.Message;
 @RestController
 @RequestMapping("/documents")
-public class DocumentController {
+public class DocumentController extends Acteur{
 
     private final DocumentService service;
     private final DocumentAccesService accessService;
@@ -22,9 +23,29 @@ public class DocumentController {
     public DocumentController(DocumentService service, 
                               DocumentAccesService accessService, 
                               TokenService tokenService) {
+        super("DocumentService");
         this.service = service;
         this.accessService = accessService;
         this.tokenService = tokenService;
+        this.demarrer();
+    }
+
+    @Override
+    public void recevoirMessage(Message message) {
+        String contenuBrut = message.getContenu();
+        if (contenuBrut == null) return;
+ 
+        getLogger().info("Message reçu | emetteur=" + message.getEmetteur() + " | contenu=" + contenuBrut);
+        String action = contenuBrut.contains(":") ? contenuBrut.split(":")[0] : contenuBrut;
+ 
+        switch (action) {
+            case "PING" -> {
+                getLogger().info("PING reçu → OK");
+            }
+ 
+ 
+            default -> getLogger().warn("Action inconnue : " + action);
+        }
     }
 
     // --- MÉTHODES DE GESTION DES ACCÈS ---

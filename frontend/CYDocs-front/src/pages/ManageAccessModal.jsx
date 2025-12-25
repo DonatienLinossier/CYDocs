@@ -12,7 +12,7 @@ export default function ManageAccessModal({ open, onClose, docId }) {
 
   const fetchCollaborators = async () => {
     try {
-      const res = await axios.get(`http://localhost:8888/documents/${docId}/collaborators`, {
+      const res = await axios.get(`http://localhost:8888/documents/documents/${docId}/collaborators`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCollaborators(res.data);
@@ -24,7 +24,7 @@ export default function ManageAccessModal({ open, onClose, docId }) {
   // Nouvelle fonction pour modifier l'accès (Réutilise l'endpoint de partage)
   const updateAccess = async (email, newType) => {
     try {
-      await axios.post("http://localhost:8888/documents/share", {
+      await axios.post("http://localhost:8888/documents/documents/share", {
         documentId: docId,
         targetEmail: email,
         accessType: newType
@@ -40,7 +40,7 @@ export default function ManageAccessModal({ open, onClose, docId }) {
   const removeAccess = async (userId) => {
     if (!window.confirm("Retirer l'accès à cet utilisateur ?")) return;
     try {
-      await axios.delete(`http://localhost:8888/documents/access/${docId}/${userId}`, {
+      await axios.delete(`http://localhost:8888/documents/documents/access/${docId}/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCollaborators(collaborators.filter(c => c.userId !== userId));

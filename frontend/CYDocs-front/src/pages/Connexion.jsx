@@ -48,14 +48,19 @@ export default function Connexion() {
       };
 
       localStorage.setItem("cy_user", JSON.stringify(user));
-      localStorage.setItem("cy_user_id", responceLogin.data.id);
       localStorage.setItem("cy_token", responceLogin.data.token);
       
       navigate("/", { replace: true });
       window.location.reload();
       
-    } catch (erreur) {
-      setErrorMessage(erreur.response?.data?.error || "Une erreur est survenue");
+    }catch (erreur) {
+      if(mode === "signup"){
+        console.error("Erreur sing in  = ", erreur.response.data);
+        setErrorMessage( erreur.response.data);
+      }else{
+      console.error("Erreur recuperer = ", erreur.response.data.error);
+      setErrorMessage( erreur.response.data.error);
+      }
     }
   };
 

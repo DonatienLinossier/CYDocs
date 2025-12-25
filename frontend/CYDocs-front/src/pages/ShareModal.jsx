@@ -10,7 +10,7 @@ export default function ShareModal({ open, onClose, docId, docTitle }) {
   const handleShare = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8888/documents/share", {
+      await axios.post("http://localhost:8888/documents/documents/share", {
         documentId: docId,
         targetEmail: email,
         accessType: accessType // Envoie "read" ou "write"

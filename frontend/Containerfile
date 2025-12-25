@@ -44,8 +44,8 @@ RUN npm install
 COPY CYDocs-front/. .
 
 # 4. Supprimer les lignes chmod qui font planter le build
-# RUN chmod +x ./node_modules/.bin/vite  <- SUPPRIMER
-# RUN chmod +x node_modules/@esbuild/linux-x64/bin/esbuild <- SUPPRIMER
+ RUN chmod +x ./node_modules/.bin/vite  
+ RUN chmod +x node_modules/@esbuild/linux-x64/bin/esbuild 
 
 # 5. Build et Serve
 RUN npm run build

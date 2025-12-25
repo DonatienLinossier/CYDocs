@@ -6,8 +6,8 @@ import axios from "axios";
 import "../styles/App.css";
 import "../styles/Document.css";
 
-const WEBSOCKET_URL = "http://localhost:8888/documents/ws"; 
-const API_URL = "http://localhost:8888/documents/get";
+const WEBSOCKET_URL = "http://localhost:8888/documents/documents/ws"; 
+const API_URL = "http://localhost:8888/documents/documents/get";
 
 export default function Document() {
   const { id } = useParams();
@@ -134,7 +134,7 @@ export default function Document() {
         content: editorRef.current?.innerHTML || ""
       };
 
-      const url = isNew ? "http://localhost:8888/documents/create" : `http://localhost:8888/documents/update/${docId}`;
+      const url = isNew ? "http://localhost:8888/documents/documents/create" : `http://localhost:8888/documents/documents/update/${docId}`;
       const method = isNew ? "post" : "put";
 
       await axios[method](url, payload, {

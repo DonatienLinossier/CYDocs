@@ -14,7 +14,6 @@ function App() {
     return stored ? JSON.parse(stored) : null;
   });
   const [docs, setDocs] = useState([]);
-  const currentUserId = localStorage.getItem("cy_user_id");
 // 2. Dans le composant App, ajoutez un état pour la modale
 const [selectedDocId, setSelectedDocId] = useState(null);
   useEffect(() => {
@@ -26,7 +25,7 @@ const [selectedDocId, setSelectedDocId] = useState(null);
 
     // 2. Appel à l'endpoint sécurisé par Token (plus besoin d'ID dans l'URL)
     axios
-      .get("http://localhost:8888/documents/my-documents", {
+      .get("http://localhost:8888/documents/documents/my-documents", {
         headers: { Authorization: `Bearer ${token}` } //
       })
       .then((res) => {
@@ -75,7 +74,7 @@ const [selectedDocId, setSelectedDocId] = useState(null);
     const token = localStorage.getItem("cy_token");
   
     try {
-      await axios.post("http://localhost:8888/documents/share", {
+      await axios.post("http://localhost:8888/documents/documents/share", {
         documentId: doc.id,
         targetEmail: email,
         accessType: type // Envoyé au backend
@@ -166,40 +165,28 @@ const [selectedDocId, setSelectedDocId] = useState(null);
             </div>
           ) : (
             <div className="docs-grid">
-  {filtered.length > 0 ? (
-    filtered.map((d) => {
-      // Vérification : l'utilisateur est-il le propriétaire ?
-      const isOwner = d.ownerId?.toString() === currentUserId?.toString();
-
-      return (
-        <article key={d.id} className="doc-card">
-          <div className="doc-title">{d.title}</div>
-          <div className="doc-author">By {d.author}</div>
-          <div className="doc-actions">
-            <Link className="btn btn-outline" to={`/document/${d.id}`}>
-              Open
-            </Link>
-
-            {/* --- AFFICHAGE CONDITIONNEL --- */}
-            {isOwner && (
-              <>
-                <button className="btn btn-secondary" onClick={() => setSharingDoc(d)}>
-                  Share
-                </button>
-                <button className="btn btn-secondary" onClick={() => setSelectedDocId(d.id)}>
-                  Gérer
-                </button>
-              </>
-            )}
-            {/* ------------------------------- */}
-          </div>
-        </article>
-      );
-    })
-  ) : (
-    <p>No documents found.</p>
-  )}
-</div>
+              {filtered.length > 0 ? (
+                filtered.map((d) => (
+                  <article key={d.id} className="doc-card">
+                    <div className="doc-title">{d.title}</div>
+                    <div className="doc-author">By {d.author}</div>
+                    <div className="doc-actions">
+                      <Link className="btn btn-outline" to={`/document/${d.id}`}>
+                        Open
+                      </Link>
+                      <button className="btn btn-secondary" onClick={() => setSharingDoc(d)}>
+  Share
+</button>
+                      <button className="btn btn-secondary" onClick={() => setSelectedDocId(d.id)}>
+                        Gérer
+                      </button>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <p>No documents found.</p>
+              )}
+            </div>
           )}
         </section>
 
