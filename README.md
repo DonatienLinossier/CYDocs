@@ -1,6 +1,8 @@
 # CYDocs 🚀
 CYDocs est une plateforme distribuée pour la gestion et l'édition collaborative de documents. Ce dépôt illustre une architecture microservices, la découverte de services, la synchronisation en temps réel et le déploiement containerisé.
 
+<img width="1918" height="945" alt="image" src="https://github.com/user-attachments/assets/9dfefcb1-df07-4a37-b1fb-83d567107bc8" />
+
 ---
 
 ## Table des matières
