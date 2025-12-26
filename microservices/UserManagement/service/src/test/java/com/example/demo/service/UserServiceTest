@@ -38,21 +38,16 @@ class UserServiceTest {
         newUser.setPassword("rawPassword");
         newUser.setUsername("TestUser");
 
-        // On dit : "Si on cherche cet email, on ne trouve rien (Optional.empty)"
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
         
-        // On dit : "Si on encode le mot de passe, retourne 'encoded123'"
         when(passwordEncoder.encode("rawPassword")).thenReturn("encoded123");
         
-        // On dit : "Quand on sauvegarde, retourne l'utilisateur tel quel"
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        // ACT (Action)
         User result = userService.registerUser(newUser);
 
-        // ASSERT (Vérification)
         assertNotNull(result);
-        assertEquals("encoded123", result.getPassword()); // Vérifie que le mdp est bien encodé
+        assertEquals("encoded123", result.getPassword()); 
         verify(userRepository, times(1)).save(any(User.class)); // Vérifie qu'on a bien appelé save()
     }
 
@@ -75,11 +70,9 @@ class UserServiceTest {
         verify(userRepository, never()).save(any()); // On ne doit JAMAIS sauvegarder si erreur
     }
 
-    // --- TESTS LOGIN ---
 
     @Test
     void login_ShouldReturnToken_WhenCredentialsAreValid() {
-        // ARRANGE
         String email = "valid@test.com";
         String rawPwd = "password123";
         String encodedPwd = "encodedPassword123";
@@ -89,30 +82,25 @@ class UserServiceTest {
         dbUser.setEmail(email);
         dbUser.setPassword(encodedPwd);
 
-        // Simulations
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(dbUser));
-        when(passwordEncoder.matches(rawPwd, encodedPwd)).thenReturn(true); // Le mot de passe correspond
+*        when(userRepository.findByEmail(email)).thenReturn(Optional.of(dbUser));
+        when(passwordEncoder.matches(rawPwd, encodedPwd)).thenReturn(true); 
         when(tokenService.createLoginToken(dbUser)).thenReturn(expectedToken);
 
-        // ACT
         String token = userService.login(email, rawPwd);
 
-        // ASSERT
         assertEquals(expectedToken, token);
     }
 
     @Test
     void login_ShouldFail_WhenPasswordIsWrong() {
-        // ARRANGE
         String email = "valid@test.com";
         User dbUser = new User();
         dbUser.setEmail(email);
         dbUser.setPassword("encodedCorrectPwd");
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(dbUser));
-        when(passwordEncoder.matches("wrongPwd", "encodedCorrectPwd")).thenReturn(false); // Le mot de passe ne correspond PAS
+        when(passwordEncoder.matches("wrongPwd", "encodedCorrectPwd")).thenReturn(false); 
 
-        // ACT & ASSERT
         RuntimeException ex = assertThrows(RuntimeException.class, () -> {
             userService.login(email, "wrongPwd");
         });
@@ -122,29 +110,23 @@ class UserServiceTest {
 
     @Test
     void login_ShouldFail_WhenUserNotFound() {
-        // ARRANGE
         when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
 
-        // ACT & ASSERT
         assertThrows(RuntimeException.class, () -> {
             userService.login("unknown@test.com", "anyPwd");
         });
     }
 
-    // --- TESTS VALIDATION TOKEN ---
 
     @Test
     void getUserIdFromToken_ShouldReturnId_WhenTokenValid() {
-        // ARRANGE
         String token = "valid_token";
         Long expectedId = 42L;
 
         when(tokenService.validate(token, "LOGIN")).thenReturn(expectedId);
 
-        // ACT
         Long resultId = userService.getUserIdFromToken(token);
 
-        // ASSERT
         assertEquals(expectedId, resultId);
     }
 

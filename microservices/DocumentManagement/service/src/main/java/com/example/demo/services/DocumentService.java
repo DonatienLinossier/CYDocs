@@ -101,7 +101,6 @@ public class DocumentService extends Acteur {
         }
     }
 
-    // --- 3. MISE A JOUR DES MÉTHODES MÉTIER ---
 
     public Document create(Document document, String token) {
         // Remplacement de tokenService.validate par validateTokenViaActor
@@ -131,7 +130,6 @@ public class DocumentService extends Acteur {
     }
 
     public Document update(Long id, Document document, String token) {
-        // Validation via Acteur
         Long userId = validateTokenViaActor(token);
         if (userId == null) throw new RuntimeException("Unauthorized");
 
