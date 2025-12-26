@@ -55,6 +55,7 @@ Le projet suit une séparation claire entre frontend et backend :
   - Document Management Service : création, stockage et gestion des documents.  
   - User Management Service : gestion des comptes et profils utilisateurs.  
   - CY-Framework : librairie interne partagée (utilitaires communs).
+<img width="660" height="440" alt="image" src="https://github.com/user-attachments/assets/e1c50b12-e336-4ace-816e-8c5d0689d93e" />
 
 ---
 
