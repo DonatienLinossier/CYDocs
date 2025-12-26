@@ -1,17 +1,5 @@
 package com.example.demo.services;
 
-<<<<<<< HEAD
-import java.nio.charset.StandardCharsets;
-
-import javax.crypto.SecretKey;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-=======
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -20,17 +8,13 @@ import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 import java.util.Map;
 import java.time.Instant;
->>>>>>> cde6773bfc1b86271b4aefb5ff1376abf34721c9
 
 @Service
 public class TokenService {
 
-<<<<<<< HEAD
-=======
     // IMPORTANT : Doit être identique à la clé du UserService
     private static final String SECRET = "super_secret_key_256_bits_minimum_OMG"; 
     private static final ObjectMapper mapper = new ObjectMapper();
->>>>>>> cde6773bfc1b86271b4aefb5ff1376abf34721c9
 
     /**
      * Recrée la signature HMAC-SHA256 pour comparer avec celle du token

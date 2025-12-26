@@ -2,11 +2,15 @@ import React, { useState } from "react";
 import axios from "axios";
 import "../styles/Modal.css";
 
-export default function ShareModal({ open, onClose, docId, docTitle }) {
+export default function ShareModal({ open, onClose, docId, docTitle, isOwner }) {
   const [email, setEmail] = useState("");
   const [accessType, setAccessType] = useState("read"); // "read" par défaut
   const token = localStorage.getItem("cy_token");
-
+  React.useEffect(() => {
+    if (!isOwner) {
+      setAccessType("read");
+    }
+  }, [isOwner, open]);
   const handleShare = async (e) => {
     e.preventDefault();
     try {
@@ -46,14 +50,22 @@ export default function ShareModal({ open, onClose, docId, docTitle }) {
           
           <div className="form-group">
             <label>Type d'accès</label>
-            <select 
-              className="search-input"
-              value={accessType} 
-              onChange={(e) => setAccessType(e.target.value)}
-            >
-              <option value="read">Lecture seule (👀)</option>
-              <option value="write">Lecture & Écriture (✏️)</option>
-            </select>
+            {isOwner ? (
+              /* Si propriétaire : choix libre */
+              <select 
+                className="search-input"
+                value={accessType} 
+                onChange={(e) => setAccessType(e.target.value)}
+              >
+                <option value="read">Lecture seule (👀)</option>
+                <option value="write">Lecture & Écriture (✏️)</option>
+              </select>
+            ) : (
+              /* Si non-propriétaire : bloqué en lecture seule */
+              <div className="search-input" style={{ background: "#f0f0f0", cursor: "not-allowed" }}>
+                Lecture seule uniquement (Restriction invité)
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>

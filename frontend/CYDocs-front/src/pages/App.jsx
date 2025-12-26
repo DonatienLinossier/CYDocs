@@ -14,6 +14,7 @@ function App() {
     return stored ? JSON.parse(stored) : null;
   });
   const [docs, setDocs] = useState([]);
+  const currentUserId = localStorage.getItem("cy_user_id");
 // 2. Dans le composant App, ajoutez un état pour la modale
 const [selectedDocId, setSelectedDocId] = useState(null);
   useEffect(() => {
@@ -158,37 +159,47 @@ const [selectedDocId, setSelectedDocId] = useState(null);
         </section>
 
         <section className="suggested">
-          <h2>Your documents</h2>
-          {!user ? (
-            <div className="auth-notice">
-              <p>Please sign in to view documents and access content.</p>
-            </div>
-          ) : (
-            <div className="docs-grid">
-              {filtered.length > 0 ? (
-                filtered.map((d) => (
-                  <article key={d.id} className="doc-card">
-                    <div className="doc-title">{d.title}</div>
-                    <div className="doc-author">By {d.author}</div>
-                    <div className="doc-actions">
-                      <Link className="btn btn-outline" to={`/document/${d.id}`}>
-                        Open
-                      </Link>
-                      <button className="btn btn-secondary" onClick={() => setSharingDoc(d)}>
-  Share
-</button>
-                      <button className="btn btn-secondary" onClick={() => setSelectedDocId(d.id)}>
-                        Gérer
-                      </button>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <p>No documents found.</p>
-              )}
-            </div>
-          )}
-        </section>
+  <h2>Your documents</h2>
+  {!user ? (
+    <div className="auth-notice">
+      <p>Please sign in to view documents and access content.</p>
+    </div>
+  ) : (
+    <div className="docs-grid">
+      {filtered.length > 0 ? (
+        filtered.map((d) => {
+          // Vérification de propriété (Idéalement placé à l'intérieur du map)
+          const isOwner = d.ownerId?.toString() === currentUserId?.toString();
+
+          return (
+            <article key={d.id} className="doc-card">
+              <div className="doc-title">{d.title}</div>
+              <div className="doc-author">By {d.author}</div>
+              <div className="doc-actions">
+                <Link className="btn btn-outline" to={`/document/${d.id}`}>
+                  Open
+                </Link>
+                
+                <button className="btn btn-secondary" onClick={() => setSharingDoc(d)}>
+                  Share
+                </button>
+
+                {/* Affiche "Gérer" uniquement si l'utilisateur est OWNER */}
+                {isOwner && (
+                  <button className="btn btn-secondary" onClick={() => setSelectedDocId(d.id)}>
+                    Gérer
+                  </button>
+                )}
+              </div>
+            </article>
+          );
+        }) // Fin du map
+      ) : (
+        <p>No documents found.</p>
+      )}
+    </div>
+  )}
+</section>
 
         <ManageAccessModal 
           open={!!selectedDocId} 
@@ -196,11 +207,12 @@ const [selectedDocId, setSelectedDocId] = useState(null);
           docId={selectedDocId} 
         />
         <ShareModal 
-  open={!!sharingDoc} 
-  onClose={() => setSharingDoc(null)} 
-  docId={sharingDoc?.id}
-  docTitle={sharingDoc?.title}
-/>
+          open={!!sharingDoc} 
+          onClose={() => setSharingDoc(null)} 
+          docId={sharingDoc?.id}
+          docTitle={sharingDoc?.title}
+          isOwner={sharingDoc?.ownerId?.toString() === currentUserId?.toString()}
+        />
         <footer className="site-footer">
           © {new Date().getFullYear()} CYDocs — Document sharing for teams
         </footer>
