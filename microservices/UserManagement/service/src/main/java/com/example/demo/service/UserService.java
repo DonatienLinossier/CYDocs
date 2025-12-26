@@ -22,7 +22,7 @@ public class UserService extends Acteur {
     private TokenService tokenService;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        super("UserService");
+        super("user-management");
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
 

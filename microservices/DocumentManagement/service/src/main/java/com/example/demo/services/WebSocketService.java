@@ -1,7 +1,7 @@
 package com.example.demo.services;
 
-import main.java.com.cyFramework.core.Acteur;
-import main.java.com.cyFramework.core.Message;
+import com.cyFramework.core.Acteur;
+import com.cyFramework.core.Message;
 
 /**
  * Service de gestion des communications WebSocket basé sur le modèle d'Acteurs.
