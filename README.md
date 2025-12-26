@@ -1,65 +1,128 @@
-CYDocs est une plateforme distribuée de gestion et d'édition de documents collaboratifs. Ce projet a été réalisé pour démontrer la mise en œuvre d'une architecture microservices, de la découverte de services et de la synchronisation de données en temps réel.
+# CYDocs 🚀
+CYDocs est une plateforme distribuée pour la gestion et l'édition collaborative de documents. Ce dépôt illustre une architecture microservices, la découverte de services, la synchronisation en temps réel et le déploiement containerisé.
 
-# 🏗️ Architecture du Système
-Le système repose sur un découpage strict entre le client et l'écosystème backend :
+---
 
-Frontend : Une application web réactive développée avec React, HTML et CSS.
+## Table des matières
+- [Aperçu](#aperçu)
+- [Fonctionnalités clés](#fonctionnalités-clés)
+- [Architecture du système](#architecture-du-système)
+- [Scalabilité & Conteneurs](#scalabilité--conteneurs)
+- [Installation & Prérequis](#installation--prérequis)
+- [Exécution](#exécution)
+- [Contribution](#contribution)
+- [Licence](#licence)
+- [Contact](#contact)
 
-Gateway (Passerelle) : Nginx sert de point d'entrée unique, filtrant et routant toutes les requêtes vers les services appropriés.
+---
 
-Découverte de Services : Consul et Eureka gèrent l'enregistrement dynamique et la localisation des instances de services.
+## Aperçu
+CYDocs permet à plusieurs utilisateurs d'éditer un même document simultanément, avec propagation instantanée des modifications via WebSockets et un backend découplé en microservices pour une maintenance et une montée en charge simplifiées.
 
-Synchronisation Temps Réel : Utilisation des WebSockets pour permettre une collaboration instantanée sur un même document.
+---
 
-Persistance : Une base de données centralisée partagée pour garantir la cohérence des données.
+## Fonctionnalités clés
+- Édition collaborative en temps réel (WebSockets)
+- Gestion des documents (création, stockage, historique)
+- Gestion des utilisateurs et permissions (lecture/écriture)
+- Architecture microservices (services découplés)
+- Déploiement containerisé et scalable
 
-Microservices Backend
-Document Management Service : Logique de création, stockage et gestion des documents.
+---
 
-User Management Service : Gestion des profils utilisateurs et des comptes.
+## Architecture du système
+Le projet suit une séparation claire entre frontend et backend :
 
-CY-Framework : Librairie interne partagée pour les utilitaires communs.
+- Frontend  
+  - Application web réactive (React, HTML, CSS) : interface utilisateur.
 
-# 📈 Scalabilité des Conteneurs
-L'architecture microservices de CYDocs est conçue pour la scalabilité horizontale. Grâce à l'utilisation de conteneurs et d'un registre de services (Eureka), il est possible de multiplier les instances d'un service spécifique pour répondre à une charge accrue.
+- Gateway (Passerelle)  
+  - Nginx : point d'entrée unique, routage et reverse proxy vers les microservices.
 
-Déploiement Scalable : Chaque microservice peut être répliqué indépendamment sans affecter le reste du système.
+- Découverte de services  
+  - Consul & Eureka : enregistrement dynamique et localisation des instances.
 
-Équilibrage de Charge : La Gateway et le système de découverte de services répartissent automatiquement le trafic entre les différentes instances actives d'un même service.
+- Synchronisation temps réel  
+  - WebSockets : propagation des modifications en temps réel entre clients.
 
-Commande de Mise à l'Échelle : Pour augmenter le nombre d'instances d'un service (ex: document-service) :
+- Persistance  
+  - Base de données centralisée (partagée entre services) pour garantir la cohérence des données.
 
+- Microservices principaux  
+  - Document Management Service : création, stockage et gestion des documents.  
+  - User Management Service : gestion des comptes et profils utilisateurs.  
+  - CY-Framework : librairie interne partagée (utilitaires communs).
+
+---
+
+## Scalabilité & Conteneurs
+Conçu pour une montée en charge horizontale :
+- Chaque microservice peut être répliqué indépendamment.
+- La Gateway et la découverte de services distribuent le trafic entre instances.
+- Exemple de mise à l'échelle (Podman Compose) : répliquer `document-service` 3 fois
+
+```bash
 podman-compose up -d --scale document-service=3
-# ✨ Showcase du Projet
-## 📝 Création de Compte
-Un processus d'inscription fluide pour accéder rapidement à l'espace collaboratif.
+```
 
-##  📄 Édition et Synchronisation Temps Réel
-Grâce aux WebSockets, les modifications sont répercutées instantanément sur tous les écrans connectés.
+---
 
-##  📊 Tableau de Bord Utilisateur
-Gestion centralisée des documents et visualisation de l'activité récente.
+## Installation & Prérequis
 
-## 🔐 Gestion des Accès
-Contrôle précis des permissions (lecture/écriture) pour chaque collaborateur.
+1. Prérequis
+   - Podman (Windows / macOS via Podman Desktop, Linux via gestionnaire de paquets)
+   - Python (pour installer podman-compose via pip)
+   - Git
 
-# 🛠️ Installation et Prérequis
-1. Installer Podman & Compose
-Windows/macOS : Téléchargez Podman Desktop. Après installation, initialisez l'environnement :
-
-Bash
-
+2. Initialisation (Windows / macOS)
+```bash
+# Initialiser et démarrer la machine Podman (si nécessaire)
 podman machine init && podman machine start
-Linux : Installez via votre gestionnaire de paquets (ex: sudo apt install podman sur Ubuntu).
+```
 
-Podman Compose : Installez l'outil via Python :
-
-Bash
-
+3. Installer podman-compose
+```bash
 pip install podman-compose
-2. Lancer le Projet
-Bash
+```
 
+4. Cloner et lancer le projet
+```bash
 git clone https://github.com/DonatienLinossier/CYDocs.git
 cd CYDocs
 podman-compose up -d
+```
+
+Remarques :
+- Les variables d'environnement et les ports sont configurables dans les fichiers de composition (vérifiez les fichiers `podman-compose` / `docker-compose` si présents).
+- Selon votre configuration, vous devrez peut‑être adapter les réglages de la gateway (Nginx) et de la base de données.
+
+---
+
+## Exécution & Accès
+- Une fois les services démarrés, la Gateway (Nginx) sert d'entrée unique vers l'application.  
+- Consultez la configuration de la gateway pour connaître le port et les routes exposées (généralement configurés dans `nginx` / `compose`).
+
+---
+
+## Contribution
+Contribuer à CYDocs est le bienvenu !  
+- Ouvrez une issue pour discuter d'un changement important.  
+- Créez des branches de fonctionnalités claires (ex: `feature/nom-fonction`), puis soumettez une Pull Request.
+
+Petits conseils :
+- Respectez le style de code présent dans le dépôt.
+- Ajoutez des tests pour les nouvelles fonctionnalités si possible.
+
+---
+
+## Licence
+Ce projet utilise une licence à définir. Merci d'ajouter un fichier `LICENSE` avec la licence choisie (MIT, Apache-2.0, etc.) si nécessaire.
+
+---
+
+## Contact
+Pour toute question ou suggestion : ouvrez une issue dans ce dépôt.
+
+---
+
+Merci d'utiliser CYDocs ✨ — une base pour expérimenter la collaboration temps réel et les architectures microservices.
