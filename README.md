@@ -20,6 +20,7 @@ CYDocs est une plateforme distribuée pour la gestion et l'édition collaborativ
 
 ## Aperçu
 CYDocs permet à plusieurs utilisateurs d'éditer un même document simultanément, avec propagation instantanée des modifications via WebSockets et un backend découplé en microservices pour une maintenance et une montée en charge simplifiées.
+<img width="1918" height="943" alt="image" src="https://github.com/user-attachments/assets/3cdfb88b-f523-4bcf-80bf-3bf5b668e9b9" />
 
 ---
 
