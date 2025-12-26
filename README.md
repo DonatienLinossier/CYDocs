@@ -30,8 +30,8 @@ Déploiement Scalable : Chaque microservice peut être répliqué indépendammen
 Commande de Mise à l'Échelle : Pour augmenter le nombre d'instances d'un service (ex: document-service) :
 
 podman-compose up -d --scale document-service=3
-✨ Showcase du Projet
-📝 Création de Compte
+#✨ Showcase du Projet
+##📝 Création de Compte
 Un processus d'inscription fluide pour accéder rapidement à l'espace collaboratif.
 
 ## 📄 Édition et Synchronisation Temps Réel
