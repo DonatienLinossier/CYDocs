@@ -5,31 +5,30 @@ import com.cyFramework.core.Message;
 
 /**
  * Service de gestion des communications WebSocket basé sur le modèle d'Acteurs.
- * Assure la médiation entre les flux de données temps-réel et la logique métier.
- * Ce composant gère le cycle de vie des messages asynchrones du frontend.
+ * Gestion des flux de données temps-réel
+ * Gère le cycle de vie des messages asynchrones du frontend.
  */
 public class WebSocketService extends Acteur {
 
     public WebSocketService() {
-        // Initialisation de l'acteur avec l'identifiant unique pour le dispatcher
+        // Initialisation de l'acteur
         super("WebSocketService");
         this.demarrer();
     }
 
     /**
-     * Point d'entrée principal (Overriding) pour la réception de messages.
+     * Point d'entrée principal pour la réception de messages.
      * @param message Enveloppe contenant l'émetteur et le payload.
      */
     @Override
     public void recevoirMessage(Message message) {
 
-        // Logging systématique pour l'audit trail et la traçabilité des flux
+        // Logging
         this.getLogger().info(
             "Message reçu | emetteur=" + message.getEmetteur() +
             " | contenu=" + message.getContenu()
         );
 
-        // Routage sélectif des actions basées sur le protocole applicatif
         switch (message.getContenu()) {
 
             case "PING" -> {
@@ -48,31 +47,28 @@ public class WebSocketService extends Acteur {
             }
 
             default -> {
-                // Fallback pour les commandes non identifiées (Forward compatibility)
+                // Fallback pour les commandes non identifiées
                 this.getLogger().warn("Action inconnue ou non implémentée : " + message.getContenu());
             }
         }
     }
 
     /**
-     * Formate et log les métadonnées d'un document pour le monitoring centralisé.
+     * Formate et log les métadonnées d'un document
      */
     public void logDocId(Long docId, String sender, String content) {
         this.getLogger().info("Trace Flux Document [" + docId + "] : " + sender + " -> " + content);
     }
 
     /**
-     * Dispatching d'une commande de sauvegarde vers le DocumentService.
-     * Illustre le découplage via le passage de messages du framework.
+     * Dispatching d'une commande de sauvegarde vers le DocumentService..
      */
     public void sendSaveMessage(Long id, String document) {
         Message msg = new Message("WebSocketService", "DocumentService", id + "|" + document);
-        //TODO: this.envoyerMessage("DocumentService", msg);
     }
 
     /**
-     * Méthode de traitement pivot pour les flux sockets.
-     * Centralise la logique de réception avant dispatching métier.
+     * Méthode de traitement pour les flux sockets.
      */
     public void handleSocket(Long value, String user, String content) {
         // Redirection vers le logger de monitoring pour analyse télémétrique
