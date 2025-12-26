@@ -39,16 +39,19 @@ export default function Connexion() {
         password,
       });
 
+      
+
       // 3. Persistance de la session
       // On utilise le prénom et nom récupérés pour l'affichage
       const user = { 
         name: mode === "signup" ? `${firstName} ${lastName}` : (responceLogin.data.firstName + " " + responceLogin.data.lastName), 
         email, 
-        id: responceLogin.data.id 
+        id: responceLogin.data.id // a revoir
       };
 
       localStorage.setItem("cy_user", JSON.stringify(user));
       localStorage.setItem("cy_token", responceLogin.data.token);
+      localStorage.setItem("cy_user_id", responceLogin.data.id);
       
       navigate("/", { replace: true });
       window.location.reload();

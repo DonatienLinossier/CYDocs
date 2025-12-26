@@ -1,1 +1,5 @@
+# Ignore nginx configuration and templates
 nginx/
+
+# Optionally keep the folder itself tracked if needed by adding a placeholder
+# !nginx/.gitkeep

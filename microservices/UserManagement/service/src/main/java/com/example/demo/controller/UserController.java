@@ -104,10 +104,19 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody User user) {
         try {
             String token = userService.login(user.getEmail(), user.getPassword());
-            return ResponseEntity.ok(Map.of(
-                "message", "Connexion réussie !",
-                "token", token
-            ));
+            // Récupérer les informations de l'utilisateur pour les renvoyer au client
+            User found = userService.getUserByEmail(user.getEmail());
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("message", "Connexion réussie !");
+            payload.put("token", token);
+            if (found != null) {
+                payload.put("id", found.getId());
+                payload.put("firstName", found.getFirstName());
+                payload.put("lastName", found.getLastName());
+            }
+
+            return ResponseEntity.ok(payload);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
