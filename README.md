@@ -119,11 +119,6 @@ Petits conseils :
 
 ---
 
-## Licence
-Ce projet utilise une licence à définir. Merci d'ajouter un fichier `LICENSE` avec la licence choisie (MIT, Apache-2.0, etc.) si nécessaire.
-
----
-
 ## Contact
 Pour toute question ou suggestion : ouvrez une issue dans ce dépôt.
 
