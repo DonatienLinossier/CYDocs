@@ -39,13 +39,13 @@ public class UserController {
 
         Message msg = new Message(
             "UserController",
-            "UserService",
+            "user-management",
             action
         );
 
-        userService.envoyerMessage("UserService", msg);
+        userService.envoyerMessage("user-management", msg);
 
-        return ResponseEntity.ok("Message envoyé à UserService : " + action);   
+        return ResponseEntity.ok("Message envoyé à user-management : " + action);   
     }
 
 

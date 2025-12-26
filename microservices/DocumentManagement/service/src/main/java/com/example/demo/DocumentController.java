@@ -60,7 +60,7 @@ public class DocumentController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- DOCUMENT MANAGEMENT METHODS ---
+   
 
     @GetMapping("/my-documents")
     public ResponseEntity<List<Document>> getMyDocuments(@RequestHeader("Authorization") String authHeader) {
