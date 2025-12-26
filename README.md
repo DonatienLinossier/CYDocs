@@ -30,20 +30,20 @@ Déploiement Scalable : Chaque microservice peut être répliqué indépendammen
 Commande de Mise à l'Échelle : Pour augmenter le nombre d'instances d'un service (ex: document-service) :
 
 podman-compose up -d --scale document-service=3
-#✨ Showcase du Projet
-##📝 Création de Compte
+# ✨ Showcase du Projet
+## 📝 Création de Compte
 Un processus d'inscription fluide pour accéder rapidement à l'espace collaboratif.
 
-## 📄 Édition et Synchronisation Temps Réel
+##  📄 Édition et Synchronisation Temps Réel
 Grâce aux WebSockets, les modifications sont répercutées instantanément sur tous les écrans connectés.
 
 ##  📊 Tableau de Bord Utilisateur
 Gestion centralisée des documents et visualisation de l'activité récente.
 
-##  🔐 Gestion des Accès
+## 🔐 Gestion des Accès
 Contrôle précis des permissions (lecture/écriture) pour chaque collaborateur.
 
-#🛠️ Installation et Prérequis
+# 🛠️ Installation et Prérequis
 1. Installer Podman & Compose
 Windows/macOS : Téléchargez Podman Desktop. Après installation, initialisez l'environnement :
 
