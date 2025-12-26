@@ -24,7 +24,7 @@ CYDocs permet à plusieurs utilisateurs d'éditer un même document simultanéme
 ## Fonctionnalités clés
 - Édition collaborative en temps réel (WebSockets)
 - Gestion des documents (création, stockage, historique)
-- Gestion des utilisateurs et permissions (lecture/écriture)
+- Gestion des utilisateurs et permissions (Création de compte/Droit lecture/Droit écriture)
 - Architecture microservices (services découplés)
 - Déploiement containerisé et scalable
 
@@ -40,7 +40,7 @@ Le projet suit une séparation claire entre frontend et backend :
   - Nginx : point d'entrée unique, routage et reverse proxy vers les microservices.
 
 - Découverte de services  
-  - Consul & Eureka : enregistrement dynamique et localisation des instances.
+  - Eureka : enregistrement dynamique et localisation des instances.
 
 - Synchronisation temps réel  
   - WebSockets : propagation des modifications en temps réel entre clients.
